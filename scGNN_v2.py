@@ -25,7 +25,7 @@ parser.add_argument('--load_dataset_dir', type=str, default='/fs/ess/PCON0022/Ed
 parser.add_argument('--load_dataset_name', type=str, default='12.Klein', 
                     help='(str) Folder that contains all the relevant input files. For example, if your expression matrix is in /fs/ess/PCON1234/Brutus/datasets/12.Klein/T2000_expression.csv, this should be set to 12.Klein')
 parser.add_argument('--load_use_benchmark', action='store_true', default=False, 
-                    help='(boolean, default False) If True, expect the following files (replace DATASET_NAME with the input to the --load_dataset_name argument): `ind.DATASET_NAME.{x, tx, allx}`, `T2000_expression.csv`, `T2000_LTMG.txt`, `DATASET_NAME__cell_label.csv` if providing ground-truth cell type labels, and `DATASET_NAME_bulk.csv` if using bulk data')
+                    help='(boolean, default False) If True, expect the following files (replace DATASET_NAME with the input to the --load_dataset_name argument): `ind.DATASET_NAME.{x, tx, allx}`, `T2000_expression.csv`, `T2000_LTMG.txt`, `DATASET_NAME_cell_label.csv` if providing ground-truth cell type labels, and `DATASET_NAME_bulk.csv` if using bulk data')
 parser.add_argument('--load_sc_dataset', type=str, default='', 
                     help='Not needed if using benchmark')
 parser.add_argument('--load_bulk_dataset', type=str, default='', 
