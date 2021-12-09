@@ -23,6 +23,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     use_GAT = args.graph_AE_use_GAT
     learning_rate = args.graph_AE_learning_rate
     total_epoch = args.graph_AE_epoch
+    embedding_size = args.graph_AE_embedding_size
 
     # Prepare matrices
     if use_GAT:
@@ -47,7 +48,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
         pos_weight = float(adj.shape[0] * adj.shape[0] - adj.sum()) / adj.sum()
         norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
 
-    graph_AE = model.Graph_AE(X_embed.shape[1]).to(param['device'])
+    graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size).to(param['device'])
     optimizer = optim.Adam(graph_AE.parameters(), lr=learning_rate)
 
     for epoch in range(total_epoch):

@@ -7,7 +7,9 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import torch
+from torch import optim
 
 import info_log
 
@@ -102,7 +104,7 @@ def optimization_1(X_sc_ct_avg_TRS, X_bulk_avg, weights_0, args, param):  # X是
     X_bulk_avg = torch.from_numpy(X_bulk_avg).type(torch.FloatTensor).to(param['device']) # [gene * 1]
     
     weights_0 = torch.from_numpy(weights_0).type(torch.FloatTensor).to(param['device']) # [ct * 1]
-    weights = torch.randn_like(weights_0, requires_grad=True).type(torch.FloatTensor).to(param['device'])  # random initialization [ct * 1]
+    weights = torch.randn_like(weights_0).type(torch.FloatTensor).to(param['device']).requires_grad_()  # random initialization [ct * 1]
     
     weights = train(weights, loss_1, 
                     {
@@ -134,7 +136,7 @@ def optimization_2(X_sc_ct_avg_pos, X_bulk_avg, weights, args, param):  # X是�
     weights = torch.from_numpy(weights).type(torch.FloatTensor).to(param['device']) # [ct * 1]
 
     X_sc_ct_avg_pos = torch.from_numpy(X_sc_ct_avg_pos).type(torch.FloatTensor).to(param['device']) # [gene * ct]
-    X_sc_ct_avg = torch.randn_like(X_sc_ct_avg_pos, requires_grad=True).type(torch.FloatTensor).to(param['device'])  # random initialization [gene * ct]
+    X_sc_ct_avg = torch.randn_like(X_sc_ct_avg_pos).type(torch.FloatTensor).to(param['device']).requires_grad_()  # random initialization [gene * ct]
     
     X_sc_ct_avg = train(X_sc_ct_avg, loss_2, 
                     {
@@ -168,11 +170,11 @@ def optimization_3(X_ct_avg, X_sc, clusterIndexList, args, param):  # X是采样
     X_ct_avg = torch.from_numpy(X_ct_avg).type(torch.FloatTensor) # [gene * ct]
 
     X_sc = torch.from_numpy(X_sc).type(torch.FloatTensor) # [gene * cell]
-    X_deconvoluted = torch.randn_like(X_sc, requires_grad=True).type(torch.FloatTensor)  # random initialization [cell * gene]
+    X_deconvoluted = torch.randn_like(X_sc).type(torch.FloatTensor)  # random initialization [cell * gene]
 
     for i, ct_idx in enumerate(clusterIndexList):
 
-        X_deconvoluted_ct = X_deconvoluted[:,ct_idx].to(param['device'])
+        X_deconvoluted_ct = X_deconvoluted[:,ct_idx].to(param['device']).requires_grad_()
         X_sc_ct = X_sc[:,ct_idx].to(param['device'])
         X_ct_avg_i = X_ct_avg[:,i].to(param['device'])
 
@@ -213,8 +215,8 @@ def fine_tune(X_bulk_avg, X_deconvoluted_ct_avg, weights, args, param):  # X是�
     weights = torch.from_numpy(weights).type(torch.FloatTensor).to(param['device']) # [ct * 1]
 
     X_bulk_avg = torch.from_numpy(X_bulk_avg).type(torch.FloatTensor).to(param['device']) # [gene * 1]
-    tunning_weights = torch.randn_like(X_bulk_avg, requires_grad=True).type(torch.FloatTensor).to(param['device']) # [gene * 1]
-    ones_tensor = torch.ones_like(X_bulk_avg, requires_grad=True).type(torch.FloatTensor).to(param['device']) # [gene * 1]
+    tunning_weights = torch.randn_like(X_bulk_avg).type(torch.FloatTensor).to(param['device']).requires_grad_() # [gene * 1]
+    ones_tensor = torch.ones_like(X_bulk_avg).type(torch.FloatTensor).to(param['device']) # [gene * 1]
 
     tunning_weights = train(tunning_weights, fine_tune_loss, 
                     {
@@ -234,14 +236,18 @@ def train(var2opt_init, loss_func, kwargs, var_min=None, learning_rate=1e-3, max
     loss_list = []
     epochs_list = []
 
-    while epochs_count < maxepochs:
-        loss = loss_func(var2opt, **kwargs)  # 上一次损失值
-        grad = torch.autograd.grad(loss, var2opt)
-        with torch.no_grad():
-            var2opt -= learning_rate * grad[0]
-            var2opt = var2opt.clamp_(min=var_min)
+    optimizer = optim.Adam([var2opt], lr=learning_rate)
 
-        loss_cpu = loss.detach().cpu().numpy()
+    while epochs_count < maxepochs:
+        loss = loss_func(var2opt, **kwargs)
+
+        loss.backward()
+        optimizer.step()
+        with torch.no_grad():
+            var2opt = var2opt.clamp_(min=var_min)
+        optimizer.zero_grad()
+
+        loss_cpu = loss.item()
         if np.abs(loss_cpu) < epsilon:  # 终止条件
             break
 

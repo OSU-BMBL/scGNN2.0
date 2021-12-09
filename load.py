@@ -47,15 +47,20 @@ def LTMG_handler(args):
 
     dir_path = os.path.join(args.load_dataset_dir, args.load_dataset_name)
     
-    if args.load_use_benchmark:
+    if args.run_LTMG:
+        return load_dense(
+            os.path.join(args.output_dir, 'ltmg.txt')
+        )['expr']
+    elif args.load_use_benchmark:
         return load_dense(
             os.path.join(dir_path, 'T2000_LTMG.txt'),
-            is_cell_by_gene = False,
+            is_cell_by_gene = False
         )['expr']
     else:
         return load_dense(
             os.path.join(dir_path, args.load_LTMG),
-        )
+            is_cell_by_gene = False
+        )['expr']
 
 def load_benchmark(dir_path, dataset_name):
     # load the data: x, tx, allx, graph
@@ -80,6 +85,11 @@ def load_benchmark(dir_path, dataset_name):
     # Format
     _, tx, allx = tuple(objects)
     features = sp.vstack((allx, tx)).toarray() # features is cell * gene
+    
+    # Check if the pickled expression file is the same as T2000_expression.txt/csv file -> doesn't seem to be the same
+    # check_diff = np.sum(np.sum(np.abs(features - dense_expr['expr'])))
+    # info_log.print(f'\n> check_diff = {check_diff}')
+    # exit()
     
     X_raw = {
         'expr': features.astype(float),

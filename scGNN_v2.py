@@ -14,10 +14,17 @@ parser.add_argument('--use_CCC', action='store_true', default=False,
                     help='(boolean, default False) Not fully implemented')
 parser.add_argument('--dropout_prob', type=float, default=0.1, 
                     help='(float, default 0.1) Probability that a non-zero value in the sc expression matrix will be set to zero. If this is set to 0, will not perform dropout or compute imputation error ')
-parser.add_argument('--total_epoch', type=int, default=10, 
-                    help='(int, default 10) Total EM epochs')
 parser.add_argument('--seed', type=int, default=1, 
                     help='(int, default 1) Seed for torch and numpy random generators')
+parser.add_argument('--total_epoch', type=int, default=10, 
+                    help='(int, default 10) Total EM epochs')
+parser.add_argument('--ari_threshold', type=float, default=0.95, 
+                    help='(float, default 0.95)')
+parser.add_argument('--graph_change_threshold', type=float, default=0.01, 
+                    help='(float, default 0.01)')
+parser.add_argument('--alpha', type=float, default=0.5, 
+                    help='(float, default 0.5)')
+
 
 # Data loading related
 parser.add_argument('--load_dataset_dir', type=str, default='/fs/ess/PCON0022/Edison/datasets', 
@@ -32,7 +39,7 @@ parser.add_argument('--load_bulk_dataset', type=str, default='',
                     help='Not needed if using benchmark')
 parser.add_argument('--load_cell_type_labels', type=str, default='', 
                     help='Not needed if using benchmark')
-parser.add_argument('--load_LTMG', type=str, default='', 
+parser.add_argument('--load_LTMG', type=str, default=None, 
                     help='Not needed if using benchmark')
 
 # Preprocess related
@@ -60,6 +67,8 @@ parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False,
                     help='(boolean, default False) Not fully implemented')
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
+parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
+                    help='(int, default 16) Graphh AE embedding size')
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
@@ -117,17 +126,14 @@ args = parser.parse_args()
 # Loading Packages
 import info_log
 info_log.print('\n> Loading Packages')
-import os
 import torch
-import matplotlib.pyplot as plt
-from sklearn.metrics import adjusted_rand_score
 
 # Local modules
 import load
 import preprocess
 import benchmark_util
-# from LTMG_R import LTMG_handler # commented out for benchmark testing
 # from ccs import CCC_graph_handler
+import result
 from auto_encoders.feature_AE import feature_AE_handler
 from auto_encoders.graph_AE import graph_AE_handler
 from auto_encoders.cluster_AE import cluster_AE_handler
@@ -143,7 +149,7 @@ torch.manual_seed(args.seed)
 info_log.print( f"Using device: {param['device']}" )
 info_log.print(args)
 
-# Loading and preprocessing data
+# Load and preprocess data
 info_log.print('\n> Loading data ...')
 X_sc_raw = load.sc_handler(args)
 X_bulk_raw = load.bulk_handler(args) if args.use_bulk else None
@@ -153,124 +159,59 @@ X_sc = preprocess.sc_handler(X_sc_raw, args)
 X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] if args.use_bulk else None
 
 info_log.print('\n> Setting up data for testing ...')
-if args.dropout_prob:
-    X_process, dropout_info = benchmark_util.dropout(X_sc['expr'], args)
-else:
-    X_process, dropout_info = X_sc['expr'].copy(), None
+X_process, dropout_info = benchmark_util.dropout(X_sc['expr'], args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
+x_dropout = X_process.copy()
+
+# result.write_out_dropout_data(X_sc, X_process, dropout_info, args) if args.dropout_prob else None
 
 info_log.print('\n> Preparing other matrices ...')
+if args.run_LTMG:
+    from LTMG_R import runLTMG
+    runLTMG(X_process, args)
 TRS = load.LTMG_handler(args)
 CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 
+# Main program starts here
 info_log.print('\n> Pre EM runs ...')
 param['is_EM'] = False
 X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop')
-cluster_labels_old = [1 for i in range(len(X_sc['cell']))]
-ARI_between_epochs_history, ARI_against_ground_truth_history, avg_err_history, med_err_history, min_err_history, max_err_history = [], [], [], [], [], []
-# cluster_AE_state_dict = deepcopy(feature_AE_state_dict)
+metrics = result.Performance_Metrics(X_sc, X_process, edgeList, ct_labels_truth, dropout_info, args)
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
 
     param['is_EM'] = True
-    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList) # Changed from X_embed to CCC_graph_hat (test both), now to edgeList just for test benchmarking
+    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
     X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
         X_imputed_bulk = deconvolution_handler(X_process, X_bulk, TRS, cluster_lists_of_idx, args, param)
-        X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, X_process, i+1, args.output_dir)
+        X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, x_dropout, i+1, args.output_dir)
     else:
         X_imputed = X_imputed_sc
 
-    # feature_AE_state_dict = deepcopy(cluster_AE_state_dict)
-    X_embed, _, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state) # X_imputed_sc and X_recon is cell * gene, should not use X_process['expr']
+    X_embed, _, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
-    # X_imputed = X_recon
     X_process = X_imputed
 
-    # Code below will be cleaned up in the next update
-    ##########
-    ARI_between_epochs = adjusted_rand_score(cluster_labels_old, cluster_labels)
-    ARI_against_ground_truth = adjusted_rand_score(ct_labels_truth, cluster_labels) if args.given_cell_type_labels else None
-    avg_err, med_err, min_err, max_err = None, None, None, None
-    if args.dropout_prob:
-        avg_err, med_err, min_err, max_err = benchmark_util.imputation_error(X_imputed, X_sc['expr'], *dropout_info)
-    ##########  
-    ARI_between_epochs_history.append(ARI_between_epochs)
-    ARI_against_ground_truth_history.append(ARI_against_ground_truth)
-    avg_err_history.append(avg_err)
-    med_err_history.append(med_err)
-    min_err_history.append(min_err)
-    max_err_history.append(max_err)
-    ##########
-    if args.given_cell_type_labels:
-        plt.plot(range(i+1), ARI_against_ground_truth_history)
-        plt.xlabel('epochs')
-        plt.ylabel('ARI Against Ground Truth')
-        plt.savefig(os.path.join(args.output_dir, "ARI_against_ground_truth.png"))
-        plt.clf()
-    ##########
-    if args.dropout_prob:
-        plt.plot(range(i+1), med_err_history)
-        plt.xlabel('epochs')
-        plt.ylabel('Median L1 Error per epoch')
-        plt.savefig(os.path.join(args.output_dir, "med_err.png"))
-        plt.clf()
-    ##########
-    info_log.print(f"==========> Epoch {i+1}: ARI Between Epochs = {ARI_between_epochs}" +
-          (f", ARI Against Ground Truth = {ARI_against_ground_truth}" if args.given_cell_type_labels else '') +
-          (f", Median L1 Error = {med_err}" if args.dropout_prob else '') +
-          " <==========")
+    # Evaluate performance metrics
+    metrics.update(cluster_labels, X_imputed, edgeList)
+    info_log.print(f"==========> Epoch {i+1}: {metrics.latest_results()} <==========")
 
-    # Update
-    # X_process['expr'] = X_imputed
-    cluster_labels_old = cluster_labels
+    if metrics.stopping_checks():
+        info_log.print(f'\n> Converged! Early stopping')
+        break
 
+info_log.print('\n> Outputing results')
+metrics.output()
+result.write_out(X_sc, cluster_labels, graph_embed, args)
+
+# Plot & Print results
 info_log.print('\n> Plotting results')
-
-plt.plot(range(args.total_epoch), ARI_between_epochs_history)
-plt.xlabel('epochs')
-plt.ylabel('ARI Between Epochs')
-plt.savefig(os.path.join(args.output_dir, "ARI_between_epochs.png"))
-plt.clf()
-
-if args.given_cell_type_labels:
-    plt.plot(range(args.total_epoch), ARI_against_ground_truth_history)
-    plt.xlabel('epochs')
-    plt.ylabel('ARI Against Ground Truth')
-    plt.savefig(os.path.join(args.output_dir, "ARI_against_ground_truth.png"))
-    plt.clf()
-
-if args.dropout_prob:
-    plt.plot(range(args.total_epoch), avg_err_history)
-    plt.xlabel('epochs')
-    plt.ylabel('Average L1 Error per epoch')
-    plt.savefig(os.path.join(args.output_dir, "avg_err.png"))
-    plt.clf()
-
-    plt.plot(range(args.total_epoch), med_err_history)
-    plt.xlabel('epochs')
-    plt.ylabel('Median L1 Error per epoch')
-    plt.savefig(os.path.join(args.output_dir, "med_err.png"))
-    plt.clf()
-
-    plt.plot(range(args.total_epoch), min_err_history)
-    plt.xlabel('epochs')
-    plt.ylabel('Min L1 Error per epoch')
-    plt.savefig(os.path.join(args.output_dir, "min_err.png"))
-    plt.clf()
-
-    plt.plot(range(args.total_epoch), max_err_history)
-    plt.xlabel('epochs')
-    plt.ylabel('Max L1 Error per epoch')
-    plt.savefig(os.path.join(args.output_dir, "max_err.png"))
-    plt.clf()
-
-info_log.print(f'\n> ARI Against Ground Truth History: {ARI_against_ground_truth_history}') if args.given_cell_type_labels else None
-info_log.print(f'\n> Median L1 Error History: {med_err_history}') if args.dropout_prob else None
-
+metrics.plot()
+info_log.print(metrics.all_results())
 info_log.print('\n> Program Finished! \n')

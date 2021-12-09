@@ -18,8 +18,11 @@ def dropout(X, args):
     X_zero: copy of X with zeros
     i, j, ix: indices of where dropout is applied
     """
-    info_log.print('--------> Applying dropout for imputation testing ...')
+    if not args.dropout_prob:
+        return X.copy(), None
 
+    info_log.print('--------> Applying dropout for imputation testing ...')
+    
     rate = args.dropout_prob
     seed = args.seed
 

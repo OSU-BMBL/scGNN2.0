@@ -1,14 +1,10 @@
-import sys
 import os
+
 import numpy as np
-import pickle as pkl
-import networkx as nx
 import scipy.sparse as sp
-import scipy.io
+import matplotlib.pyplot as plt
 import torch
-from torch import nn, optim
-from torch.nn import functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 def generateCelltypeRegu(listResult):
     celltypesample = np.zeros((len(listResult), len(listResult)))
@@ -74,3 +70,12 @@ class ExpressionDataset(Dataset):
 class ClusterDataset(ExpressionDataset):
     def __init__(self, X=None, transform=None):
         super().__init__(X, transform)
+
+
+def plot(y, xlabel='epochs', ylabel='', hline=None, output_dir='', suffix=''):
+    plt.plot(range(len(y)), y)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.axhline(y=hline, color='green', linestyle='-') if hline else None
+    plt.savefig(os.path.join(output_dir, f"{ylabel.replace(' ', '_')}{suffix}.png"))
+    plt.clf()
