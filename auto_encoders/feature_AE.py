@@ -14,9 +14,10 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     info_log.print('--------> Starting Feature AE ...')
 
     batch_size = args.feature_AE_batch_size
-    total_epoch = args.feature_AE_epoch[param['is_EM']]
+    total_epoch = args.feature_AE_epoch[param['epoch_num'] > 0]
     learning_rate = args.feature_AE_learning_rate
     regu_strength = args.feature_AE_regu_strength
+    masked_prob = args.feature_AE_dropout_prob
 
     X_dataset = util.ExpressionDataset(X)
     X_loader = DataLoader(X_dataset, batch_size=batch_size, **param['dataloader_kwargs'])
@@ -36,6 +37,7 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
         TRS = TRS, 
         total_epoch = total_epoch,
         regu_strength = regu_strength,
+        masked_prob = masked_prob,
         param = param)
 
     checkpoint = {

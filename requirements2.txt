@@ -1,0 +1,18 @@
+numpy
+pandas
+
+matplotlib
+seaborn
+umap-learn
+
+torch
+
+networkx
+python-igraph
+
+# rpy2==3.4.5
+
+# Below are not used
+# auto_encoders.gae.train
+# munkres==1.1.2
+# tqdm==4.48.0

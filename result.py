@@ -3,28 +3,33 @@ import pandas as pd
 
 import os
 import pickle as pkl
+from time import time
 
 import info_log
 import util
 import benchmark_util
 from clustering import cluster_output_handler as cluster_summary
+from deconvolution import average_by_ct
 
-from sklearn.metrics import adjusted_rand_score
+from sklearn.metrics import adjusted_rand_score, silhouette_score
 import networkx as nx
 # from similarity_index_of_label_graph_package import similarity_index_of_label_graph_class
 
 
 class Performance_Metrics():
 
-    def __init__(self, X_sc, X_process, edgeList, ct_labels_truth, dropout_info, args):
-
+    def __init__(self, X_sc, X_process, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param):
+        
+        # args
         self.given_cell_type_labels = args.given_cell_type_labels
         self.dropout_prob = args.dropout_prob
         self.total_epoch = args.total_epoch
         self.output_dir = args.output_dir
         self.ari_threshold = args.ari_threshold
         self.alpha = args.alpha
+        self.use_bulk = args.use_bulk
 
+        # initialization
         self.ct_labels_truth = ct_labels_truth
         self.cluster_labels_old = np.zeros_like(X_sc['cell'])
         self.graph_old = nx.Graph()
@@ -34,126 +39,188 @@ class Performance_Metrics():
         self.adjOld = self.adj_orig
         self.X_true = X_sc['expr']
         self.dropout_info = dropout_info
+        self.graph_embed_old = graph_embed
 
-        self.ARI = {
-            'between_epochs': [],
-            'against_ground_truth': []
-        }
+        # metric names and dictionary
+        self.metric_names = [
+            'ari_between_epochs', 'ari_against_ground_truth',
+            'error_median', 'error_median_inv', 'error_median_entire',
+            'deconv_error_median', 'deconv_error_median_inv', 'deconv_error_median_entire',
+            'sc_error_median', 'sc_error_median_inv', 'sc_error_median_entire',
+            'bulk_error_median', 'bulk_error_median_inv', 'bulk_error_median_entire',
+            'sc_bulk_error_median', 'sc_bulk_error_median_inv', 'sc_bulk_error_median_entire',
+            'error_median_by_ct',
+            'graph_similarity', 'graph_change',
+            'cluster_count', 'cluster_size_list',
+            'silhouette_cluster', 'silhouette_embed',
+            'time_used'
+        ]
 
-        self.error = {
-            'mean': [],
-            'median': [],
-            'min': [],
-            'max': []
-        }
+        self.unused_metric_names = ['graph_similarity']
 
-        self.graph = {
-            'similarity': [],
-            'change': []
-        }
+        self.metrics = {name:[] for name in self.metric_names}
 
-        self.cluster = {
-            'count': [],
-            'size_list': []
-        }
-
-        self.update(self.cluster_labels_old+1, X_process, edgeList)
+        # add initial values
+        self.update(self.cluster_labels_old, X_process, edgeList, graph_embed, param)
     
-    def update(self, cluster_labels, X_imputed, edgeList):
+    def update(self, cluster_labels, X_imputed, edgeList, graph_embed, param=None):
+        
+        info_log.print('--------> Computing all metrics ...')
+        
+        # Cluster info
+        cluster_label_list = self.ct_labels_truth if param['epoch_num'] == 0 else cluster_labels
+        cluster_index_list = cluster_summary(cluster_label_list)[1]
+        cluster_count = len(cluster_index_list)
+        cluster_size_list = [len(ct) for ct in cluster_index_list]
+        cluster_size_list.sort()
 
         # Clustering evaluation
-        ARI_between_epochs = adjusted_rand_score(self.cluster_labels_old, cluster_labels)
-        ARI_against_ground_truth = adjusted_rand_score(self.ct_labels_truth, cluster_labels) if self.given_cell_type_labels else None
+        ari_between_epochs = adjusted_rand_score(self.cluster_labels_old, cluster_labels) if param['epoch_num'] > 1 else None
+        if param['epoch_num'] == 0:
+            ari_against_ground_truth = None if self.given_cell_type_labels else self.unused_metric_names.append['ari_against_ground_truth']
+        else:
+            ari_against_ground_truth = adjusted_rand_score(self.ct_labels_truth, cluster_labels) 
+
+        silhouette_cluster = silhouette_score(self.graph_embed_old, cluster_label_list) if param['epoch_num'] > 0 else None
+        silhouette_embed = silhouette_score(self.graph_embed_old, self.ct_labels_truth)
 
         # Imputation evaluation
-        avg_err, med_err, min_err, max_err = None, None, None, None
-        if self.dropout_prob:
-            avg_err, med_err, min_err, max_err = benchmark_util.imputation_error(X_imputed, self.X_true, *self.dropout_info)
+        name_list = [
+                'deconv_error_median', 'deconv_error_median_inv', 'deconv_error_median_entire',
+                'sc_error_median', 'sc_error_median_inv', 'sc_error_median_entire',
+                'bulk_error_median', 'bulk_error_median_inv', 'bulk_error_median_entire',
+                'sc_bulk_error_median', 'sc_bulk_error_median_inv', 'sc_bulk_error_median_entire',
+                'error_median_by_ct'
+            ]
+            
+        ## On imputed matrix
+        error_median, error_median_inv, error_median_entire = benchmark_util.imputation_error_handler(X_imputed, self.X_true, self.dropout_prob, self.dropout_info)
+
+        if self.use_bulk and param['epoch_num'] == 0:
+
+            # for name in name_list:
+            #     exec(f'{name} = 0')
+            
+            deconv_error_median, deconv_error_median_inv, deconv_error_median_entire = None, None, None
+            sc_error_median, sc_error_median_inv, sc_error_median_entire = None, None, None
+            bulk_error_median, bulk_error_median_inv, bulk_error_median_entire = None, None, None
+            sc_bulk_error_median, sc_bulk_error_median_inv, sc_bulk_error_median_entire = None, None, None
+            error_median_by_ct = None
+
+        elif self.use_bulk and param['epoch_num'] > 0:
+
+            X_ct_avg = param['X_ct_avg'] # ct * gene
+            X_deconvoluted_unadjusted = param['X_deconvoluted_unadjusted'] # cell * gene
+            X_imputed_sc = param['X_imputed_sc'] # cell * gene
+            X_imputed_bulk = param['X_imputed_bulk'] # cell * gene
+
+            ## On unadjusted imputed bulk
+            deconv_error_median, deconv_error_median_inv, deconv_error_median_entire = benchmark_util.imputation_error_handler(X_deconvoluted_unadjusted, self.X_true, self.dropout_prob, self.dropout_info)
+
+            ## On imputed sc
+            sc_error_median, sc_error_median_inv, sc_error_median_entire = benchmark_util.imputation_error_handler(X_imputed_sc, self.X_true, self.dropout_prob, self.dropout_info)
+
+            ## On imputed bulk
+            bulk_error_median, bulk_error_median_inv, bulk_error_median_entire = benchmark_util.imputation_error_handler(X_imputed_bulk, self.X_true, self.dropout_prob, self.dropout_info)
+
+            ## By cell type
+            X_orig_ct_avg_pos = average_by_ct(self.X_true.T, cluster_index_list, mask=self.X_true.T==0).T # ct * gene
+            _, error_median_by_ct, _, _ = benchmark_util.imputation_error_entire(X_ct_avg, X_orig_ct_avg_pos)
+
+            ## Between sc and bulk
+            sc_bulk_error_median, sc_bulk_error_median_inv, sc_bulk_error_median_entire = benchmark_util.imputation_error_handler(X_imputed_sc, X_imputed_bulk, self.dropout_prob, self.dropout_info)
+        
+        elif param['epoch_num'] == 0:
+            self.unused_metric_names.extend(name_list)
+        
+        if not self.dropout_prob and param['epoch_num'] == 0:
+            self.unused_metric_names.extend(['error_median', 'error_median_inv'])
 
         # Graph similarity evaluation (beta)
         graph_new = nx.Graph()
         graph_new.add_weighted_edges_from(edgeList)
         # similarity_index_of_label_graph = similarity_index_of_label_graph_class()
-        # graph_similarity_between_epochs = similarity_index_of_label_graph(self.graph_old, graph_new)
+        graph_similarity = None # similarity_index_of_label_graph(self.graph_old, graph_new)
 
         # Graph changes
         adj_new_temp = nx.adjacency_matrix(graph_new)
         adjNew = self.alpha * self.adj_orig + (1- self.alpha) * adj_new_temp / np.sum(adj_new_temp, axis=0)
-        graphChange = np.mean(abs(adjNew - self.adjOld))
-
-        # Cluster info
-        cluster_label_list = self.ct_labels_truth if len(self.cluster['count']) == 0 else cluster_labels
-        cluster_index_list = cluster_summary(cluster_label_list)[1]
-        cluster_count = len(cluster_index_list)
-        cluster_size_list = [len(ct) for ct in cluster_index_list]
+        graph_change = np.mean(abs(adjNew - self.adjOld))
         
+        # Time elapsed
+        tok = time()
+        time_used = tok - param['tik'] # in seconds
+        param['tik'] = tok
+
         # Log the latest metric values
-        self.ARI['between_epochs'].append(ARI_between_epochs)
-        self.ARI['against_ground_truth'].append(ARI_against_ground_truth)
-        self.error['mean'].append(avg_err)
-        self.error['median'].append(med_err)
-        self.error['min'].append(min_err)
-        self.error['max'].append(max_err)
-        # self.graph['similarity'].append(graph_similarity_between_epochs)
-        self.graph['change'].append(graphChange)
-        self.cluster['count'].append(cluster_count)
-        self.cluster['size_list'].append(cluster_size_list)
+        if param['epoch_num'] == 0:
+            for name in self.unused_metric_names:
+                self.metric_names.remove(name)
+                self.metrics.pop(name)
+                
+        for name in self.metric_names:
+            self.metrics[name].append(eval(name))
 
         # Update results for next iteration
         self.cluster_labels_old = cluster_labels
         self.graph_old = graph_new
         self.adjOld = adjNew
+        self.graph_embed_old = graph_embed
 
-    def output(self):
+    def output(self, args):
         info_log.print('--------> Exporting all metrics ...')
         
-        result_df = pd.DataFrame(
-            data = {
-                'ari_against_ground_truth': self.ARI['against_ground_truth'],
-                'error_median': self.error['median'],
-                'ari_between_epochs': self.ARI['between_epochs'],
-                'error_mean': self.error['mean'],
-                'error_min': self.error['min'],
-                'error_max': self.error['max'],
-                'graph_change': self.graph['change'],
-                'cluster_count': self.cluster['count'],
-                'cluster_size_list': self.cluster['size_list']
-            }
-        )
+        run_ID = args.output_run_ID
+
+        result_df = pd.DataFrame(data = self.metrics).T
+        
+        result_df = result_df.set_index([np.repeat(run_ID, len(result_df)), result_df.index]) if run_ID is not None else result_df
+
         result_df.to_csv(os.path.join(self.output_dir, 'all_metris.csv'))
 
     def plot(self):
-        util.plot(self.ARI['between_epochs'], ylabel='ARI Between Epochs', output_dir=self.output_dir)
-        util.plot(self.ARI['against_ground_truth'], ylabel='ARI Against Ground Truth', output_dir=self.output_dir) if self.given_cell_type_labels else None
+        util.plot(self.metrics['ari_between_epochs'], ylabel='ARI Between Epochs', output_dir=self.output_dir)
+        util.plot(self.metrics['cluster_silhouette_cluster'], ylabel='Silhouette of Clustering Labels', output_dir=self.output_dir)
+        util.plot(self.metrics['cluster_silhouette_embed'], ylabel='Silhouette of Graph Embeddings', output_dir=self.output_dir)
+        util.plot(self.metrics['ari_against_ground_truth'], ylabel='ARI Against Ground Truth', output_dir=self.output_dir) if self.given_cell_type_labels else None
         # util.plot(self.graph['similarity'], ylabel='Graph Similarity Between Epochs', output_dir=self.output_dir)
-        util.plot(self.graph['change'], ylabel='Graph Change Between Epochs', hline=self.graph_change_threshold, output_dir=self.output_dir)
-        util.plot(self.cluster['count'], ylabel='Cluster Count', output_dir=self.output_dir)
+        util.plot(self.metrics['graph_change'], ylabel='Graph Change Between Epochs', hline=self.graph_change_threshold, output_dir=self.output_dir)
+        util.plot(self.metrics['cluster_count'], ylabel='Cluster Count', output_dir=self.output_dir)
         if self.dropout_prob:
-            util.plot(self.error['mean'], ylabel='Average L1 Error', output_dir=self.output_dir)
-            util.plot(self.error['median'], ylabel='Median L1 Error', output_dir=self.output_dir)
-            util.plot(self.error['min'], ylabel='Min L1 Error', output_dir=self.output_dir)
-            util.plot(self.error['max'], ylabel='Max L1 Error', output_dir=self.output_dir)
+            util.plot(self.metrics['error_mean'], ylabel='Average L1 Error', output_dir=self.output_dir)
+            util.plot(self.metrics['error_median'], ylabel='Median L1 Error', output_dir=self.output_dir)
+            util.plot(self.metrics['error_min'], ylabel='Min L1 Error', output_dir=self.output_dir)
+            util.plot(self.metrics['error_max'], ylabel='Max L1 Error', output_dir=self.output_dir)
 
     def latest_results(self):
-        last_idx = len(self.ARI['between_epochs']) - 1
-        str_repr = f"ARI Between Epochs = {self.ARI['between_epochs'][last_idx]}" + \
-            (f", \nARI Against Ground Truth = {self.ARI['against_ground_truth'][last_idx]}" if self.given_cell_type_labels else '') + \
-            (f", \nMedian L1 Error = {self.error['median'][last_idx]}" if self.dropout_prob else '') + \
-            f", \nPredicted {self.cluster['count'][last_idx]} clusters, their sizes are {self.cluster['size_list'][last_idx]}"
+        last_idx = len(self.metrics['ari_between_epochs']) - 1
+        str_repr = f"ARI Between Epochs = {self.metrics['ari_between_epochs'][last_idx]}" + \
+            (f", \nARI Against Ground Truth = {self.metrics['ari_against_ground_truth'][last_idx]}" if self.given_cell_type_labels else '') + \
+            (f", \nMedian L1 Error = {self.metrics['error_median'][last_idx]}" if self.dropout_prob else '') + \
+            f", \nPredicted {self.metrics['cluster_count'][last_idx]} clusters, their sizes are {self.metrics['cluster_size_list'][last_idx]}"
         return str_repr
     
     def all_results(self):
-        str_repr = (f"\n> ARI Against Ground Truth = {self.ARI['against_ground_truth']}" if self.given_cell_type_labels else '') + \
-            (f"\n> Median L1 Error = {self.error['median']}" if self.dropout_prob else '')
-        return str_repr
+        
+        ari_result_str = f"\n> ARI Against Ground Truth = {self.metrics['ari_against_ground_truth']}" if self.given_cell_type_labels else ''
+        l1_result_str = f"\n> Median L1 Error = {self.metrics['error_median']}" if self.dropout_prob else ''
+        total_time_str = f"\n> Total running time (seconds) = {sum(self.metrics['time_used'])}"
+        
+        return ari_result_str + l1_result_str + total_time_str
 
     def stopping_checks(self,):
-        last_idx = len(self.ARI['between_epochs']) - 1
-        
-        return self.graph['change'][last_idx] < self.graph_change_threshold or (self.ARI['against_ground_truth'][last_idx] > self.ari_threshold if self.given_cell_type_labels else False)
+        last_idx = len(self.metrics['ari_between_epochs']) - 1
 
-def write_out(X_sc, cluster_labels, graph_embed, args):
+        graph_change_is_small_enough = self.metrics['graph_change'][last_idx] < self.graph_change_threshold
+        cell_type_pred_is_similar_enough = self.metrics['ari_against_ground_truth'][last_idx] > self.ari_threshold if self.given_cell_type_labels else False
+
+        return graph_change_is_small_enough or cell_type_pred_is_similar_enough
+
+def write_out(X_sc, X_imputed, cluster_labels, graph_embed, args):
     output_dir = args.output_dir
+
+    info_log.print('--------> Exporting imputed expression matrix ...')
+    pd.DataFrame(data=X_imputed, index=X_sc['cell'], columns=X_sc['gene']).to_csv(os.path.join(output_dir,'imputed.csv'))
 
     info_log.print('--------> Exporting cell label predictions ...')
     pd.DataFrame(data=cluster_labels, index=X_sc['cell'], columns=["labels_pred"]).to_csv(os.path.join(output_dir,'labels.csv'))
@@ -164,11 +231,14 @@ def write_out(X_sc, cluster_labels, graph_embed, args):
         emblist.append(f'embedding_{i+1}')
     pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'embedding.csv'))
     
-def write_out_dropout_data(X_sc, X_process, dropout_info, args):
+    util.drawUMAP(graph_embed, cluster_labels, output_dir)
+    util.drawTSNE(graph_embed, cluster_labels, output_dir)
+    
+def write_out_dropout_data(X_sc, x_dropout, dropout_info, args):
     output_dir = args.output_dir
 
     info_log.print('--------> Exporting dropout data ...')
-    pd.DataFrame(data=X_process.T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'dropout_expression.csv'))
+    pd.DataFrame(data=x_dropout.T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'dropout_expression.csv'))
     
     info_log.print('--------> Exporting dropout info ...')
     with open(os.path.join(output_dir,'dropout_info.pkl'), 'wb') as f:
@@ -179,5 +249,3 @@ def write_out_dropout_data(X_sc, X_process, dropout_info, args):
     
     info_log.print('Program finished')
     exit()
-    
-    
