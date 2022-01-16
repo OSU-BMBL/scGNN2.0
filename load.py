@@ -84,7 +84,7 @@ def load_benchmark(dir_path, dataset_name):
 
     # Format
     _, tx, allx = tuple(objects)
-    features = sp.vstack((allx, tx)).toarray() # features is cell * gene
+    features = sp.vstack((tx, allx)).toarray() # features is cell * gene
     
     # Check if the pickled expression file is the same as T2000_expression.txt/csv file -> doesn't seem to be the same
     # check_diff = np.sum(np.sum(np.abs(features - dense_expr['expr'])))
