@@ -33,9 +33,9 @@ def runLTMG(X, args):
     
     #Original version without sparse
     robjects.r('''           
-        test.data <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
-        object <- scGNNLTMG::CreateLTMGObject(as.matrix(test.data))
-        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all", seed = 123, k=5)
+        x <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
+        object <- scGNNLTMG::CreateLTMGObject(x)
+        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all")
         my.matrix <- cbind(ID = rownames(object@OrdinalMatrix), object@OrdinalMatrix)
         write.table(my.matrix, file = output_file, row.names = F, quote = F, sep = "\t")
     ''')

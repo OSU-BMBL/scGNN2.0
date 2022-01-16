@@ -252,4 +252,4 @@ def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, 
 
     if args.given_cell_type_labels:
         info_log.print('--------> Exporting top cell labels ...')
-        pd.DataFrame(data=ct_labels, index=X_sc['cell'], columns=['cell_name','cell_type']).to_csv(os.path.join(output_dir,'top_cell_labels.csv')) 
+        pd.DataFrame(data=ct_labels, index=X_sc['cell'], columns=['cell_type']).to_csv(os.path.join(output_dir,'top_cell_labels.csv')) 

@@ -11,7 +11,7 @@ set -e
 module load python/3.6-conda5.2
 source activate scgnnEnv
 
-cd /fs/ess/PCON0022/Edison/scGNN_v1_2_d/outputs
+cd /fs/ess/PCON0022/Edison/scGNN2.0/outputs
 mkdir ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout
 cd ..
 
@@ -45,4 +45,4 @@ python -W ignore scGNN_v2.py \
 # sbatch --export=dataset_name=12.Klein,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=13.Zeisel,dropout_prob=0.1 run.sh
 
-# sbatch --export=dataset_name=Chung,dropout_prob=0.1,load_sc_dataset=chung_expression.txt,load_cell_type_labels=chung_cell_type.txt run.sh
+# sbatch --export=dataset_name=Biase,load_sc_dataset=Biase_expression.csv,load_cell_type_labels=Biase_cell_label.csv,dropout_prob=0.1 run.sh

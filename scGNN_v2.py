@@ -169,7 +169,7 @@ X_sc = preprocess.sc_handler(X_sc_raw, args)
 X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] if args.use_bulk else None
 
 info_log.print('\n> Setting up data for testing ...')
-x_dropout, dropout_info = benchmark_util.dropout(X_sc['expr'], args)
+x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
 result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
 x_dropout = x_dropout['expr']
