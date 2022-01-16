@@ -248,4 +248,4 @@ def write_out_dropout_data(X_sc, x_dropout, dropout_info, args):
     pd.DataFrame(data=X_sc['expr'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'original_expression.csv'))
     
     info_log.print('Program finished')
-    exit()
+    
