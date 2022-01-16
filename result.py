@@ -233,19 +233,23 @@ def write_out(X_sc, X_imputed, cluster_labels, graph_embed, args):
     
     util.drawUMAP(graph_embed, cluster_labels, output_dir)
     util.drawTSNE(graph_embed, cluster_labels, output_dir)
-    
-def write_out_dropout_data(X_sc, x_dropout, dropout_info, args):
-    output_dir = args.output_dir
 
-    info_log.print('--------> Exporting dropout data ...')
-    pd.DataFrame(data=x_dropout.T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'dropout_expression.csv'))
+def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels, args):
+    output_dir = os.path.join(args.output_dir, 'preprocessed_data')
+    os.mkdir(output_dir)
+    dropout_prob = args.dropout_prob
+
+    if dropout_prob:
+        info_log.print('--------> Exporting dropout data ...')
+        pd.DataFrame(data=x_dropout['expr_b4_log'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'dropout_top_expression.csv'))
     
-    info_log.print('--------> Exporting dropout info ...')
-    with open(os.path.join(output_dir,'dropout_info.pkl'), 'wb') as f:
-        pkl.dump(dropout_info, f)
+        info_log.print('--------> Exporting dropout info ...')
+        with open(os.path.join(output_dir,'dropout_info.pkl'), 'wb') as f:
+            pkl.dump(dropout_info, f)
     
     info_log.print('--------> Exporting full data ...')
-    pd.DataFrame(data=X_sc['expr'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'original_expression.csv'))
-    
-    info_log.print('Program finished')
-    
+    pd.DataFrame(data=X_sc['expr_b4_log'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'original_top_expression.csv'))
+
+    if args.given_cell_type_labels:
+        info_log.print('--------> Exporting top cell labels ...')
+        pd.DataFrame(data=ct_labels, index=X_sc['cell'], columns=['cell_name','cell_type']).to_csv(os.path.join(output_dir,'top_cell_labels.csv')) 

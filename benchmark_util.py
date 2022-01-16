@@ -10,7 +10,7 @@ import pandas as pd
 import info_log
 
 
-def dropout(X, args):
+def dropout(X_sc, args):
     """
     X: original testing set
     ========
@@ -18,15 +18,15 @@ def dropout(X, args):
     X_zero: copy of X with zeros
     i, j, ix: indices of where dropout is applied
     """
+    X_zero, X_zero_b4_log = X_sc['expr'].copy(), X_sc['expr_b4_log'].copy()
+
     if not args.dropout_prob:
-        return X.copy(), None
+        return {'expr': X_zero, 'expr_b4_log': X_zero_b4_log}, None
 
     info_log.print('--------> Applying dropout for imputation testing ...')
     
     rate = args.dropout_prob
     seed = args.seed
-
-    X_zero = X.copy()
 
     # If the input is a dense matrix
     if isinstance(X_zero, np.ndarray):
@@ -45,12 +45,13 @@ def dropout(X, args):
     ix = np.random.choice(range(len(i)), int(np.floor(rate * len(i))), replace=False)
     # X_zero[i[ix], j[ix]] *= np.random.binomial(1, rate)
     X_zero[i[ix], j[ix]] = 0.0
+    X_zero_b4_log[i[ix], j[ix]] = 0.0
 
     # choice number 2, focus on a few but corrupt binomially
     #ix = np.random.choice(range(len(i)), int(slice_prop * np.floor(len(i))), replace=False)
     #X_zero[i[ix], j[ix]] = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
     
-    return X_zero, (i, j, ix) # new matrix with dropout same shape as X, row index of non zero entries, column index of non zero entries, index for entries in list i and j that are set to zero
+    return {'expr': X_zero, 'expr_b4_log': X_zero_b4_log}, (i, j, ix) # new matrix with dropout same shape as X, row index of non zero entries, column index of non zero entries, index for entries in list i and j that are set to zero
 
 # IMPUTATION METRICS
 # Revised freom Original version in scVI

@@ -1,10 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_v1_2_d
-#SBATCH --time=2:00
+#SBATCH --job-name=py_scGNN_preprocess
+#SBATCH --time=59:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
 #SBATCH --mail-type=BEGIN,END,FAIL
 
 set -e
@@ -13,16 +12,18 @@ module load python/3.6-conda5.2
 source activate scgnnEnv
 
 cd /fs/ess/PCON0022/Edison/scGNN_v1_2_d/outputs
-mkdir ${SLURM_JOB_ID}_${dataset_name}_no_bulk_${dropout_prob}_dropout
+mkdir ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout
 cd ..
 
 python -W ignore scGNN_v2.py \
 --given_cell_type_labels \
---load_use_benchmark \
---load_dataset_dir /fs/ess/PCON0022/Edison/datasets \
+--run_LTMG \
+--load_dataset_dir /fs/ess/PCON0022/Edison/datasets/raw \
 --load_dataset_name ${dataset_name} \
+--load_sc_dataset ${load_sc_dataset} \
+--load_cell_type_labels ${load_cell_type_labels} \
 --output_run_ID ${SLURM_JOB_ID} \
---output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_no_bulk_${dropout_prob}_dropout \
+--output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
 --total_epoch 2 --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
 # --use_bulk
@@ -43,3 +44,5 @@ python -W ignore scGNN_v2.py \
 # sbatch --export=dataset_name=11.Kolodziejczyk,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=12.Klein,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=13.Zeisel,dropout_prob=0.1 run.sh
+
+# sbatch --export=dataset_name=Chung,dropout_prob=0.1,load_sc_dataset=chung_expression.txt,load_cell_type_labels=chung_cell_type.txt run.sh

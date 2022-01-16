@@ -14,8 +14,8 @@ def runLTMG(X, args):
 
     info_log.print('--------> Running LTMG ...')
     
-    expression_file = os.path.join(args.output_dir, 'expression_for_LTMG.csv')
-    output_file = os.path.join(args.output_dir, 'ltmg.txt')
+    expression_file = os.path.join(args.output_dir, '_expression_for_LTMG.csv')
+    output_file = os.path.join(args.output_dir, 'LTMG.csv')
 
     # np.savetxt(expression_file, X, delimiter=',')
     pd.DataFrame(X).to_csv(expression_file)
