@@ -14,8 +14,8 @@ def runLTMG(X, args):
 
     info_log.print('--------> Running LTMG ...')
     
-    expression_file = os.path.join(args.output_dir, 'expression_for_LTMG.csv')
-    output_file = os.path.join(args.output_dir, 'ltmg.txt')
+    expression_file = os.path.join(args.output_dir, '_expression_for_LTMG.csv')
+    output_file = os.path.join(args.output_dir, 'LTMG.csv')
 
     # np.savetxt(expression_file, X, delimiter=',')
     pd.DataFrame(X).to_csv(expression_file)
@@ -33,9 +33,9 @@ def runLTMG(X, args):
     
     #Original version without sparse
     robjects.r('''           
-        test.data <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
-        object <- scGNNLTMG::CreateLTMGObject(as.matrix(test.data))
-        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all", seed = 123, k=5)
+        x <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
+        object <- scGNNLTMG::CreateLTMGObject(x)
+        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all")
         my.matrix <- cbind(ID = rownames(object@OrdinalMatrix), object@OrdinalMatrix)
         write.table(my.matrix, file = output_file, row.names = F, quote = F, sep = "\t")
     ''')

@@ -49,7 +49,7 @@ def LTMG_handler(args):
     
     if args.run_LTMG:
         return load_dense(
-            os.path.join(args.output_dir, 'ltmg.txt')
+            os.path.join(args.output_dir, 'LTMG.csv')
         )['expr']
     elif args.load_use_benchmark:
         return load_dense(
@@ -147,9 +147,13 @@ def cell_type_labels(args, cell_filter):
         ).iloc[:, 0].to_numpy()
     else:
         y = pd.read_csv(
-            os.path.join(dir_path, args.load_cell_type_labels), index_col=0)
+            os.path.join(dir_path, args.load_cell_type_labels), index_col=0, sep=None)
         cells = np.array(y.index.tolist())
-        ct_labels = y.to_numpy().ravel()
+        # info_log.print(f"cells has shape: {cells.shape}")
+        # info_log.print(cells)
+        ct_labels = y.iloc[:, 0].to_numpy().ravel()
+        # info_log.print(f"ct_labels has shape: {ct_labels.shape}")
+        # info_log.print(ct_labels)
         ct_labels = ct_labels[[c in cell_filter for c in cells]]
 
     info_log.print(f"--------> {len(ct_labels)} ground-truth cell type labels loaded")
