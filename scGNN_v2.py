@@ -181,8 +181,8 @@ if args.run_LTMG:
 TRS = load.LTMG_handler(args)
 CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 
-info_log.print('\n> Program Finished! \n')
-exit()
+# info_log.print('\n> Program Finished! \n')
+# exit()
 
 # Main program starts here
 info_log.print('\n> Pre EM runs ...')
