@@ -127,3 +127,6 @@ def drawTSNE(z, listResult, output_dir):
     
     plt.savefig(os.path.join(output_dir, f"tSNE.png"), dpi=300)
     plt.clf()
+
+def imputation_err_heatmap(X_sc, X_imputed, cluster_labels=None, args=None):
+    pass
