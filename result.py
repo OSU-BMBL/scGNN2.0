@@ -236,7 +236,8 @@ def write_out(X_sc, X_imputed, cluster_labels, graph_embed, args):
 
 def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels, args):
     output_dir = os.path.join(args.output_dir, 'preprocessed_data')
-    os.mkdir(output_dir)
+    dataset_name = args.load_dataset_name
+    os.mkdir(output_dir) if not os.path.exists(output_dir) else None
     dropout_prob = args.dropout_prob
 
     if dropout_prob:
@@ -249,6 +250,16 @@ def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, 
     
     info_log.print('--------> Exporting full data ...')
     pd.DataFrame(data=X_sc['expr_b4_log'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'original_top_expression.csv'))
+
+    # To compatible with scGNN 1.0 input interface
+    feature = X_sc['expr_b4_log'] # cell * gene
+    x = feature
+    tx = feature[0:1]
+    allx = feature[1:]
+
+    pkl.dump(allx, open(os.path.join(output_dir,f"ind.{dataset_name}.allx"), "wb" ) )
+    pkl.dump(x, open(os.path.join(output_dir,f"ind.{dataset_name}.x"), "wb" ) )
+    pkl.dump(tx, open(os.path.join(output_dir,f"ind.{dataset_name}.tx"), "wb" ) )
 
     if args.given_cell_type_labels:
         info_log.print('--------> Exporting top cell labels ...')
