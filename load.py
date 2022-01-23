@@ -49,7 +49,7 @@ def LTMG_handler(args):
     
     if args.run_LTMG:
         return load_dense(
-            os.path.join(args.output_dir, 'LTMG.csv')
+            os.path.join(args.output_dir, 'preprocessed_data', 'LTMG.csv')
         )['expr']
     elif args.load_use_benchmark:
         return load_dense(
