@@ -3,3 +3,5 @@
 __pycache__/
 outputs/
 scgnn-env/
+outputs_noLTMG/
+outputs_ind_LTMG/
