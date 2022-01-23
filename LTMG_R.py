@@ -21,7 +21,7 @@ def runLTMG(X, args):
     output_file = os.path.join(output_dir, 'LTMG.csv')
 
     # np.savetxt(expression_file, X, delimiter=',')
-    pd.DataFrame(X).to_csv(expression_file)
+    pd.DataFrame(X.T).to_csv(expression_file)
 
     # robjects.r('''
     #         setwd("/users/PAS1475/qiren081/GCNN/data/sc/ex")

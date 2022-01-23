@@ -49,7 +49,8 @@ def LTMG_handler(args):
     
     if args.run_LTMG:
         return load_dense(
-            os.path.join(args.output_dir, 'preprocessed_data', 'LTMG.csv')
+            os.path.join(args.output_dir, 'preprocessed_data', 'LTMG.csv'),
+            is_cell_by_gene = False
         )['expr']
     elif args.load_use_benchmark:
         return load_dense(

@@ -5,3 +5,6 @@ outputs/
 scgnn-env/
 outputs_noLTMG/
 outputs_ind_LTMG/
+outputs_LTMG_corrected/
+run2.sh
+

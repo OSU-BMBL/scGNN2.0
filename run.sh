@@ -1,9 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=py_scGNN_preprocess
-#SBATCH --time=59:00
+#SBATCH --job-name=py_scGNN_preprocess_and_run
+#SBATCH --time=8:00:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
 #SBATCH --mail-type=BEGIN,END,FAIL
 
 set -e
@@ -25,7 +26,7 @@ python -W ignore scGNN_v2.py \
 --output_run_ID ${SLURM_JOB_ID} \
 --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
---total_epoch 2 --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
+--total_epoch 50
 
 # python -W ignore scGNN_v2.py \
 # --given_cell_type_labels \
@@ -57,3 +58,22 @@ python -W ignore scGNN_v2.py \
 
 # sbatch --export=dataset_name=Kolodziejczyk,load_sc_dataset=Kolodziejczyk_expression.csv,load_cell_type_labels=Kolodziejczyk_cell_label.csv,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=11.Kolodziejczyk,dropout_prob=0.1 run.sh
+
+# sbatch --export=dataset_name=Biase,load_sc_dataset=Biase_expression.csv,load_cell_type_labels=Biase_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Deng,load_sc_dataset=Deng_expression.csv,load_cell_type_labels=Deng_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Goolam,load_sc_dataset=Goolam_expression.csv,load_cell_type_labels=Goolam_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Guo,load_sc_dataset=Guo_expression.csv,load_cell_type_labels=Guo_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Pollen,load_sc_dataset=Pollen_expression.csv,load_cell_type_labels=Pollen_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Treutlein,load_sc_dataset=Treutlein_expression.csv,load_cell_type_labels=Treutlein_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Usoskin,load_sc_dataset=Usoskin_expression.csv,load_cell_type_labels=Usoskin_cell_label.csv,dropout_prob=0.1 run.sh
+# sbatch --export=dataset_name=Yan,load_sc_dataset=Yan_expression.csv,load_cell_type_labels=Yan_cell_label.csv,dropout_prob=0.1 run.sh
+
+# sbatch --export=dataset_name=Biase,load_sc_dataset=Biase_expression.csv,load_cell_type_labels=Biase_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Deng,load_sc_dataset=Deng_expression.csv,load_cell_type_labels=Deng_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Goolam,load_sc_dataset=Goolam_expression.csv,load_cell_type_labels=Goolam_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Guo,load_sc_dataset=Guo_expression.csv,load_cell_type_labels=Guo_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Pollen,load_sc_dataset=Pollen_expression.csv,load_cell_type_labels=Pollen_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Treutlein,load_sc_dataset=Treutlein_expression.csv,load_cell_type_labels=Treutlein_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Usoskin,load_sc_dataset=Usoskin_expression.csv,load_cell_type_labels=Usoskin_cell_label.csv,dropout_prob=0 run.sh
+# sbatch --export=dataset_name=Yan,load_sc_dataset=Yan_expression.csv,load_cell_type_labels=Yan_cell_label.csv,dropout_prob=0 run.sh
+
