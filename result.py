@@ -242,7 +242,7 @@ def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, 
 
     if dropout_prob:
         info_log.print('--------> Exporting dropout data ...')
-        pd.DataFrame(data=x_dropout['expr_b4_log'].T, index=X_sc['gene'], columns=X_sc['cell']).to_csv(os.path.join(output_dir,'dropout_top_expression.csv'))
+        pd.DataFrame(data=x_dropout['expr_b4_log'].T, index=x_dropout['gene'], columns=x_dropout['cell']).to_csv(os.path.join(output_dir,'dropout_top_expression.csv'))
     
         info_log.print('--------> Exporting dropout info ...')
         with open(os.path.join(output_dir,'dropout_info.pkl'), 'wb') as f:

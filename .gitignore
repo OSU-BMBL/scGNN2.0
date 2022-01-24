@@ -6,5 +6,6 @@ scgnn-env/
 outputs_noLTMG/
 outputs_ind_LTMG/
 outputs_LTMG_corrected/
+outputs_archive/
 run2.sh
 

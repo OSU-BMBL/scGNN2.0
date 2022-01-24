@@ -172,13 +172,12 @@ info_log.print('\n> Setting up data for testing ...')
 x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
 result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
-x_dropout = x_dropout['expr']
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
     from LTMG_R import runLTMG
     runLTMG(x_dropout, args)
-TRS = load.LTMG_handler(args)
+TRS = load.LTMG_handler(args) # cell * gene
 CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 
 # info_log.print('\n> Program Finished! \n')
@@ -187,6 +186,7 @@ CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 # Main program starts here
 info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
+x_dropout = x_dropout['expr']
 X_process = x_dropout.copy()
 X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)

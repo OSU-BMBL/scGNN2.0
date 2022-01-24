@@ -13,15 +13,16 @@ importr('scGNNLTMG')
 def runLTMG(X, args):
 
     info_log.print('--------> Running LTMG ...')
-
+    
     output_dir = os.path.join(args.output_dir, 'preprocessed_data')
-    os.mkdir(output_dir) if not os.path.exists(output_dir) else None
+    expr_file_name = "dropout_top_expression.csv" if args.dropout_prob else 'original_top_expression.csv'
+    expression_file = os.path.join(output_dir, expr_file_name)
+    
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+        pd.DataFrame(data=x_dropout['expr'].T, index=x_dropout['gene'], columns=x_dropout['cell']).to_csv(expression_file)
 
-    expression_file = os.path.join(output_dir, '_expression_for_LTMG.csv')
-    output_file = os.path.join(output_dir, 'LTMG.csv')
-
-    # np.savetxt(expression_file, X, delimiter=',')
-    pd.DataFrame(X.T).to_csv(expression_file)
+    output_file = os.path.join(output_dir, f'LTMG_{args.dropout_prob}.csv')
 
     # robjects.r('''
     #         setwd("/users/PAS1475/qiren081/GCNN/data/sc/ex")
@@ -41,7 +42,7 @@ def runLTMG(X, args):
         object <- scGNNLTMG::RunLTMG(object, Gene_use = "all")
         my.matrix <- cbind(ID = rownames(object@OrdinalMatrix), object@OrdinalMatrix)
         write.table(my.matrix, file = output_file, row.names = F, quote = F, sep = "\t")
-    ''')
+    ''') # output gene * cell
 
 #Sparse version
 #R code:

@@ -51,7 +51,7 @@ def dropout(X_sc, args):
     #ix = np.random.choice(range(len(i)), int(slice_prop * np.floor(len(i))), replace=False)
     #X_zero[i[ix], j[ix]] = np.random.binomial(X_zero[i[ix], j[ix]].astype(np.int), rate)
     
-    return {'expr': X_zero, 'expr_b4_log': X_zero_b4_log}, (i, j, ix) # new matrix with dropout same shape as X, row index of non zero entries, column index of non zero entries, index for entries in list i and j that are set to zero
+    return {'expr': X_zero, 'expr_b4_log': X_zero_b4_log, 'gene': X_sc['gene'] , 'cell':X_sc['cell']}, (i, j, ix) # new matrix with dropout same shape as X, row index of non zero entries, column index of non zero entries, index for entries in list i and j that are set to zero
 
 # IMPUTATION METRICS
 # Revised freom Original version in scVI
