@@ -4,7 +4,7 @@ from torch.nn import functional as F
 
 import info_log
 
-def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, param):
+def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param):
     '''
     EMFlag indicates whether in EM processes.
         If in EM, use regulized-type parsed from program entrance,
@@ -20,14 +20,15 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
 
             # Send data and regulation matrix to device
             data = data.type(torch.FloatTensor).to(param['device'])
+            data_masked = F.dropout(data, p=masked_prob)
             regulationMatrixBatch = TRS[dataindex, :].to(param['device'])
 
             optimizer.zero_grad()
             
-            z, recon_batch = model.forward(data) # reconstructed batch and encoding layer as outputs
+            z, recon_batch = model.forward(data_masked) # reconstructed batch and encoding layer as outputs
             
             # Calculate loss
-            if param['is_EM']:
+            if param['epoch_num'] > 0:
                 loss = loss_function_graph(
                     recon_batch, 
                     data.view(-1, recon_batch.shape[1]), 

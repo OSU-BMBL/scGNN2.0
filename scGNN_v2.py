@@ -59,6 +59,8 @@ parser.add_argument('--feature_AE_learning_rate', type=float, default=1e-3,
                     help='(float, default 1e-3) Learning rate')
 parser.add_argument('--feature_AE_regu_strength', type=float, default=0.9, 
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
+parser.add_argument('--feature_AE_dropout_prob', type=float, default=0, 
+                    help='(float, default 0)')
 
 # Graph AE related
 parser.add_argument('--graph_AE_epoch', type=int, default=200,
@@ -79,6 +81,8 @@ parser.add_argument('--cluster_AE_learning_rate', type=float, default=1e-3,
                     help='(float, default 1e-3) Learning rate')
 parser.add_argument('--cluster_AE_regu_strength', type=float, default=0.9, 
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
+parser.add_argument('--cluster_AE_dropout_prob', type=float, default=0, 
+                    help='(float, default 0)')
 
 # Deconvolution related
 parser.add_argument('--deconv_opt1_learning_rate', type=float, default=1e-3, 
@@ -99,15 +103,17 @@ parser.add_argument('--deconv_opt2_epsilon', type=float, default=1e-4,
 parser.add_argument('--deconv_opt2_regu_strength', type=float, default=1e-2, 
                     help='')
 
-parser.add_argument('--deconv_opt3_learning_rate', type=float, default=1e-2, 
+parser.add_argument('--deconv_opt3_learning_rate', type=float, default=1e-1, 
                     help='')
-parser.add_argument('--deconv_opt3_epoch', type=int, default=20, 
+parser.add_argument('--deconv_opt3_epoch', type=int, default=150, 
                     help='')
 parser.add_argument('--deconv_opt3_epsilon', type=float, default=1e-4, 
                     help='')
-parser.add_argument('--deconv_opt3_regu_strength_1', type=float, default=1e-2, 
+parser.add_argument('--deconv_opt3_regu_strength_1', type=float, default=0.8, 
                     help='')
 parser.add_argument('--deconv_opt3_regu_strength_2', type=float, default=1e-2, 
+                    help='')
+parser.add_argument('--deconv_opt3_regu_strength_3', type=float, default=1, 
                     help='')
 
 parser.add_argument('--deconv_tune_learning_rate', type=float, default=1e-2, 
@@ -119,7 +125,9 @@ parser.add_argument('--deconv_tune_epsilon', type=float, default=1e-4,
 
 # Output related
 parser.add_argument('--output_dir', type=str, default='outputs/', 
-                    help='(str) Folder for storing all the outputs')
+                    help="(str, default 'outputs/') Folder for storing all the outputs")
+parser.add_argument('--output_run_ID', type=int, default=None, 
+                    help='(int, default None) Run ID to be printed along with metric outputs')
 
 args = parser.parse_args()
 
@@ -127,6 +135,7 @@ args = parser.parse_args()
 import info_log
 info_log.print('\n> Loading Packages')
 import torch
+from time import time
 
 # Local modules
 import load
@@ -145,6 +154,7 @@ from imputation import imputation_handler
 param = dict()
 param['device'] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 param['dataloader_kwargs'] = {'num_workers': 1, 'pin_memory': True} if torch.cuda.is_available() else {}
+param['tik'] = time()
 torch.manual_seed(args.seed)
 info_log.print( f"Using device: {param['device']}" )
 info_log.print(args)
@@ -159,37 +169,40 @@ X_sc = preprocess.sc_handler(X_sc_raw, args)
 X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] if args.use_bulk else None
 
 info_log.print('\n> Setting up data for testing ...')
-X_process, dropout_info = benchmark_util.dropout(X_sc['expr'], args)
+x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
-x_dropout = X_process.copy()
-
-# result.write_out_dropout_data(X_sc, X_process, dropout_info, args) if args.dropout_prob else None
+result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
     from LTMG_R import runLTMG
-    runLTMG(X_process, args)
-TRS = load.LTMG_handler(args)
+    runLTMG(x_dropout, args)
+TRS = load.LTMG_handler(args) # cell * gene
 CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
+
+# info_log.print('\n> Program Finished! \n')
+# exit()
 
 # Main program starts here
 info_log.print('\n> Pre EM runs ...')
-param['is_EM'] = False
+param['epoch_num'] = 0
+x_dropout = x_dropout['expr']
+X_process = x_dropout.copy()
 X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
-info_log.print('\n> Entering main loop')
-metrics = result.Performance_Metrics(X_sc, X_process, edgeList, ct_labels_truth, dropout_info, args)
+info_log.print('\n> Entering main loop ...')
+metrics = result.Performance_Metrics(X_sc, X_process, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param)
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
+    param['epoch_num'] = i+1
 
-    param['is_EM'] = True
     cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
     X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
-        X_imputed_bulk = deconvolution_handler(X_process, X_bulk, TRS, cluster_lists_of_idx, args, param)
-        X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, x_dropout, i+1, args.output_dir)
+        X_imputed_bulk = deconvolution_handler(X_process, X_bulk, x_dropout, TRS, cluster_lists_of_idx, args, param)
+        X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, x_dropout, args, param)
     else:
         X_imputed = X_imputed_sc
 
@@ -199,19 +212,19 @@ for i in range(args.total_epoch):
     X_process = X_imputed
 
     # Evaluate performance metrics
-    metrics.update(cluster_labels, X_imputed, edgeList)
-    info_log.print(f"==========> Epoch {i+1}: {metrics.latest_results()} <==========")
+    metrics.update(cluster_labels, X_imputed, edgeList, graph_embed, param)
+    info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():
         info_log.print(f'\n> Converged! Early stopping')
         break
 
-info_log.print('\n> Outputing results')
-metrics.output()
-result.write_out(X_sc, cluster_labels, graph_embed, args)
+info_log.print('\n> Outputing results ...')
+metrics.output(args)
+result.write_out(X_sc, X_imputed, cluster_labels, graph_embed, args)
 
 # Plot & Print results
-info_log.print('\n> Plotting results')
-metrics.plot()
+# info_log.print('\n> Plotting results ...')
+# metrics.plot()
 info_log.print(metrics.all_results())
 info_log.print('\n> Program Finished! \n')

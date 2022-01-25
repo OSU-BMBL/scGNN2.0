@@ -14,11 +14,15 @@ def runLTMG(X, args):
 
     info_log.print('--------> Running LTMG ...')
     
-    expression_file = os.path.join(args.output_dir, 'expression_for_LTMG.csv')
-    output_file = os.path.join(args.output_dir, 'ltmg.txt')
+    output_dir = os.path.join(args.output_dir, 'preprocessed_data')
+    expr_file_name = "dropout_top_expression.csv" if args.dropout_prob else 'original_top_expression.csv'
+    expression_file = os.path.join(output_dir, expr_file_name)
+    
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+        pd.DataFrame(data=X['expr_b4_log'].T, index=X['gene'], columns=X['cell']).to_csv(expression_file)
 
-    # np.savetxt(expression_file, X, delimiter=',')
-    pd.DataFrame(X).to_csv(expression_file)
+    output_file = os.path.join(output_dir, f'LTMG_{args.dropout_prob}.csv')
 
     # robjects.r('''
     #         setwd("/users/PAS1475/qiren081/GCNN/data/sc/ex")
@@ -33,12 +37,12 @@ def runLTMG(X, args):
     
     #Original version without sparse
     robjects.r('''           
-        test.data <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
-        object <- scGNNLTMG::CreateLTMGObject(as.matrix(test.data))
-        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all", seed = 123, k=5)
+        x <- read.csv(expressionFile, header = T, row.names = 1, check.names = F)
+        object <- scGNNLTMG::CreateLTMGObject(x)
+        object <- scGNNLTMG::RunLTMG(object, Gene_use = "all")
         my.matrix <- cbind(ID = rownames(object@OrdinalMatrix), object@OrdinalMatrix)
         write.table(my.matrix, file = output_file, row.names = F, quote = F, sep = "\t")
-    ''')
+    ''') # output gene * cell
 
 #Sparse version
 #R code:

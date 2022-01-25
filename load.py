@@ -15,7 +15,11 @@ def sc_handler(args):
     dir_path = os.path.join(args.load_dataset_dir, args.load_dataset_name)
     
     if args.load_use_benchmark:
-        return load_benchmark(dir_path, dataset_name=args.load_dataset_name)
+        # return load_benchmark(dir_path, dataset_name=args.load_dataset_name)
+        return load_dense(
+            os.path.join(dir_path, f'original_top_expression.csv'),
+            is_cell_by_gene = False
+        )
     else:
         info_log.print('--------> Loading sc raw expression ...')
         return load_dense(
@@ -49,11 +53,12 @@ def LTMG_handler(args):
     
     if args.run_LTMG:
         return load_dense(
-            os.path.join(args.output_dir, 'ltmg.txt')
+            os.path.join(args.output_dir, 'preprocessed_data', f'LTMG_{args.dropout_prob}.csv'),
+            is_cell_by_gene = False
         )['expr']
     elif args.load_use_benchmark:
         return load_dense(
-            os.path.join(dir_path, 'T2000_LTMG.txt'),
+            os.path.join(dir_path, f'LTMG_{args.dropout_prob}.csv'),
             is_cell_by_gene = False
         )['expr']
     else:
@@ -84,7 +89,8 @@ def load_benchmark(dir_path, dataset_name):
 
     # Format
     _, tx, allx = tuple(objects)
-    features = sp.vstack((allx, tx)).toarray() # features is cell * gene
+    features = sp.vstack((tx, allx)).toarray() # features is cell * gene
+    # features = sp.vstack((allx, tx)).toarray() # features is cell * gene, this is incorrect
     
     # Check if the pickled expression file is the same as T2000_expression.txt/csv file -> doesn't seem to be the same
     # check_diff = np.sum(np.sum(np.abs(features - dense_expr['expr'])))
@@ -143,13 +149,17 @@ def cell_type_labels(args, cell_filter):
 
     if args.load_use_benchmark:
         ct_labels = pd.read_csv(
-            os.path.join(dir_path, f'{args.load_dataset_name}_cell_label.csv'), index_col=0
+            os.path.join(dir_path, f'top_cell_labels.csv'), index_col=0
         ).iloc[:, 0].to_numpy()
     else:
         y = pd.read_csv(
-            os.path.join(dir_path, args.load_cell_type_labels), index_col=0)
+            os.path.join(dir_path, args.load_cell_type_labels), index_col=0, sep=None)
         cells = np.array(y.index.tolist())
-        ct_labels = y.to_numpy().ravel()
+        # info_log.print(f"cells has shape: {cells.shape}")
+        # info_log.print(cells)
+        ct_labels = y.iloc[:, 0].to_numpy().ravel()
+        # info_log.print(f"ct_labels has shape: {ct_labels.shape}")
+        # info_log.print(ct_labels)
         ct_labels = ct_labels[[c in cell_filter for c in cells]]
 
     info_log.print(f"--------> {len(ct_labels)} ground-truth cell type labels loaded")

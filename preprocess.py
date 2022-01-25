@@ -28,6 +28,7 @@ def sc_handler(X_raw, args):
     X_log = log_transform(X_select)
 
     info_log.print(f"--------> Preprocessed sc data has {len(X_log['cell'])} cells and {len(X_log['gene'])} genes, Removing {len(X_raw['cell']) - len(X_log['cell'])} cells and {len(X_raw['gene']) - len(X_log['gene'])} genes")
+    
     return X_log # cell * gene
 
 def bulk_handler(X_raw, gene_filter):
@@ -84,6 +85,7 @@ def log_transform(X):
 
     return {
         'expr': np.log(X['expr'] + 1),
+        'expr_b4_log': X['expr'],
         'gene': X['gene'],
         'cell': X['cell']
     }

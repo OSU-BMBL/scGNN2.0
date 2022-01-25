@@ -1,0 +1,13 @@
+numpy
+pandas
+
+matplotlib
+seaborn
+umap-learn
+
+torch
+
+networkx
+python-igraph
+
+rpy2

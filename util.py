@@ -2,7 +2,13 @@ import os
 
 import numpy as np
 import scipy.sparse as sp
+import pandas as pd
+
+import seaborn as sns
 import matplotlib.pyplot as plt
+import umap
+from sklearn.manifold import TSNE
+
 import torch
 from torch.utils.data import Dataset
 
@@ -77,5 +83,50 @@ def plot(y, xlabel='epochs', ylabel='', hline=None, output_dir='', suffix=''):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.axhline(y=hline, color='green', linestyle='-') if hline else None
-    plt.savefig(os.path.join(output_dir, f"{ylabel.replace(' ', '_')}{suffix}.png"))
+    plt.savefig(os.path.join(output_dir, f"{ylabel.replace(' ', '_')}{suffix}.png"), dpi=200)
     plt.clf()
+
+def drawUMAP(z, listResult, output_dir):
+    """
+    UMAP
+    """
+    reducer = umap.UMAP()
+    embedding = reducer.fit_transform(z)
+    size = len(set(listResult)) + 1
+
+    plt.scatter(embedding[:, 0], embedding[:, 1],
+                c=listResult, cmap='Spectral', s=5)
+    plt.gca().set_aspect('equal', 'datalim')
+    plt.colorbar(boundaries=np.arange(int(size)) - 0.5).set_ticks(np.arange(int(size)))
+    plt.title('UMAP projection', fontsize=24)
+
+    plt.savefig(os.path.join(output_dir, f"UMAP.png"), dpi=300)
+    plt.clf()
+
+def drawTSNE(z, listResult, output_dir):
+    size = len(set(listResult))
+
+    tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
+    tsne_results = tsne.fit_transform(z)
+
+    df_subset = pd.DataFrame()
+    df_subset['tsne-2d-one'] = tsne_results[:, 0]
+    df_subset['tsne-2d-two'] = tsne_results[:, 1]
+    df_subset['Cluster'] = listResult
+    
+    plt.figure(figsize=(16, 10))
+    sns.scatterplot(
+        x="tsne-2d-one",
+        y="tsne-2d-two",
+        hue="Cluster",
+        palette=sns.color_palette("brg", int(size)),
+        data=df_subset,
+        legend="full",
+        # alpha=0.3
+    )
+    
+    plt.savefig(os.path.join(output_dir, f"tSNE.png"), dpi=300)
+    plt.clf()
+
+def imputation_err_heatmap(X_sc, X_imputed, cluster_labels=None, args=None):
+    pass

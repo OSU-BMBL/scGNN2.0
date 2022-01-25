@@ -19,6 +19,8 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
     total_epoch = args.cluster_AE_epoch
     learning_rate = args.cluster_AE_learning_rate
     regu_strength = args.cluster_AE_regu_strength
+    masked_prob = args.cluster_AE_dropout_prob
+
 
     # Initialize an empty matrix for storing the results
     reconNew = np.zeros_like(X_recon)
@@ -50,6 +52,7 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
             TRS = TRS, 
             total_epoch = total_epoch,
             regu_strength = regu_strength,
+            masked_prob = masked_prob,
             param = param)
 
         for i, row in enumerate(clusterIndex):
