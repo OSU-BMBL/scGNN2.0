@@ -37,18 +37,26 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
                     regularizer_type = 'LTMG')
             elif impute_regu is not None: # EM Imputation AE
                 loss = loss_function_graph(
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = impute_regu, 
-                    regu_strength = regu_strength,
-                    regularizer_type = 'Celltype')
-            else:
-                loss = loss_function_graph( # EM Feature AE
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = regulationMatrixBatch, 
-                    regu_strength = regu_strength,
-                    regularizer_type = 'noregu')
+                    recon_batch,
+                    data.view(-1, recon_batch.shape[1]),
+                    regulationMatrix=impute_regu,
+                    regu_strength=regu_strength,
+                    regularizer_type='Celltype')
+
+                l1 = 0.0
+                l2 = 0.0
+                for p in model.parameters():
+                    l1 = l1 + p.abs().sum()
+                    l2 = l2 + p.pow(2).sum()
+                loss = loss + 1 * l1 + 0 * l2
+
+            else: # EM Feature AE
+                loss = loss_function_graph( 
+                    recon_batch,
+                    data.view(-1, recon_batch.shape[1]),
+                    regulationMatrix=regulationMatrixBatch,
+                    regu_strength=regu_strength,
+                    regularizer_type='noregu')
                 
 
             # Backprop and Update
