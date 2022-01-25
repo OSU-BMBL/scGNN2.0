@@ -20,7 +20,7 @@ def runLTMG(X, args):
     
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-        pd.DataFrame(data=x_dropout['expr'].T, index=x_dropout['gene'], columns=x_dropout['cell']).to_csv(expression_file)
+        pd.DataFrame(data=X['expr_b4_log'].T, index=X['gene'], columns=X['cell']).to_csv(expression_file)
 
     output_file = os.path.join(output_dir, f'LTMG_{args.dropout_prob}.csv')
 
