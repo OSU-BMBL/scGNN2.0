@@ -4,7 +4,7 @@ from torch.nn import functional as F
 
 import info_log
 
-def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param):
+def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param, impute_regu=None):
     '''
     EMFlag indicates whether in EM processes.
         If in EM, use regulized-type parsed from program entrance,
@@ -28,19 +28,28 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
             z, recon_batch = model.forward(data_masked) # reconstructed batch and encoding layer as outputs
             
             # Calculate loss
-            if param['epoch_num'] > 0:
-                loss = loss_function_graph(
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = regulationMatrixBatch, 
-                    regu_strength = regu_strength)
-            else:
+            if param['epoch_num'] == 0: # pre EM Feature AE
                 loss = loss_function_graph(
                     recon_batch, 
                     data.view(-1, recon_batch.shape[1]), 
                     regulationMatrix = regulationMatrixBatch, 
                     regu_strength = regu_strength,
                     regularizer_type = 'LTMG')
+            elif impute_regu is not None: # EM Imputation AE
+                loss = loss_function_graph(
+                    recon_batch, 
+                    data.view(-1, recon_batch.shape[1]), 
+                    regulationMatrix = impute_regu, 
+                    regu_strength = regu_strength,
+                    regularizer_type = 'Celltype')
+            else:
+                loss = loss_function_graph( # EM Feature AE
+                    recon_batch, 
+                    data.view(-1, recon_batch.shape[1]), 
+                    regulationMatrix = regulationMatrixBatch, 
+                    regu_strength = regu_strength,
+                    regularizer_type = 'noregu')
+                
 
             # Backprop and Update
             loss.backward()
@@ -66,14 +75,21 @@ def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='nor
     Regularized by the graph information
     Reconstruction + KL divergence losses summed over all elements and batch
     '''
-    if regularizer_type == 'LTMG':
+    if regularizer_type in ['LTMG', 'Celltype']:
         x.requires_grad = True
     
-    BCE = (1-regu_strength) * F.mse_loss(recon_x, x, reduction=reduction)
+    BCE = (1-regu_strength) * F.mse_loss(recon_x, x, reduction=reduction) # [cell batch * gene]
     
     if regularizer_type == 'noregu':
         loss = BCE
+
     elif regularizer_type == 'LTMG':
         loss = BCE + regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix ).sum()
+
+    elif regularizer_type == 'Celltype':
+
+        graphregu, celltyperegu = regulationMatrix
+        loss = 0.3 * ( graphregu @ F.mse_loss(recon_x, x, reduction='none') ).sum() + \
+            0.1 * ( celltyperegu @ F.mse_loss(recon_x, x, reduction='none') ).sum()
 
     return loss

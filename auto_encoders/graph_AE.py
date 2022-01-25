@@ -36,7 +36,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
         CCC_graph = torch.from_numpy(CCC_graph).type(torch.FloatTensor).to(param['device'])
     else:
         adj, adj_train, edgeList = feature2adj(X_embed)
-        adj_norm = gae_util.preprocess_graph(adj)
+        adj_norm = gae_util.preprocess_graph(adj_train)
         adj_label = (adj_train + sp.eye(adj_train.shape[0])).toarray()
 
         zDiscret = X_embed > np.mean(X_embed, axis=0)
@@ -45,8 +45,8 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
         CCC_graph_edge_index = adj_norm.to(param['device'])
         CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
 
-        pos_weight = float(adj.shape[0] * adj.shape[0] - adj.sum()) / adj.sum()
-        norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
+        pos_weight = float(adj_train.shape[0] * adj_train.shape[0] - adj_train.sum()) / adj_train.sum()
+        norm = adj_train.shape[0] * adj_train.shape[0] / float((adj_train.shape[0] * adj_train.shape[0] - adj_train.sum()) * 2)
 
     graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size).to(param['device'])
     optimizer = optim.Adam(graph_AE.parameters(), lr=learning_rate)
@@ -110,14 +110,15 @@ def convert_adj_to_edge_index(adjacency_matrix):
 def feature2adj(X_embed):
     edgeList = calculateKNNgraphDistanceMatrixStatsSingleThread(X_embed)
     graphdict = edgeList2edgeDict(edgeList, X_embed.shape[0])
-    adj = nx.adjacency_matrix(nx.from_dict_of_lists(graphdict))
+    adj_return = nx.adjacency_matrix(nx.from_dict_of_lists(graphdict))
+    adj = adj_return.copy()
     adj_orig = adj
     adj_orig = adj_orig - sp.dia_matrix((adj_orig.diagonal()[np.newaxis, :], [0]), shape=adj_orig.shape)
     adj_orig.eliminate_zeros()
     adj_train, train_edges, val_edges, val_edges_false, test_edges, test_edges_false = gae_util.mask_test_edges(adj)
-    adj = adj_train
+    # adj = adj_train
 
-    return adj, adj_train, edgeList
+    return adj_return, adj_train, edgeList
 
 
 def calculateKNNgraphDistanceMatrixStatsSingleThread(featureMatrix, distanceType='euclidean', k=10):

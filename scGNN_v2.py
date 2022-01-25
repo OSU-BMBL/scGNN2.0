@@ -188,7 +188,9 @@ info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
 x_dropout = x_dropout['expr']
 X_process = x_dropout.copy()
+
 X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
+
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop ...')
@@ -198,6 +200,8 @@ for i in range(args.total_epoch):
     param['epoch_num'] = i+1
 
     cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
+
+    param['impute_regu'] = (adj, cluster_labels)
     X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
@@ -207,6 +211,7 @@ for i in range(args.total_epoch):
         X_imputed = X_imputed_sc
 
     X_embed, _, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
+
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
     X_process = X_imputed
