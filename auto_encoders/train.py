@@ -31,7 +31,10 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
             # Send data and regulation matrix to device
             data = data.type(torch.FloatTensor).to(param['device'])
             data_masked = F.dropout(data, p=masked_prob)
-            impute_regu['LTMG_regu'] = TRS[dataindex, :].to(param['device'])
+            if impute_regu is not None:
+                impute_regu['LTMG_regu'] = TRS[dataindex, :].to(param['device'])
+            else:
+                impute_regu = {'LTMG_regu': TRS[dataindex, :].to(param['device'])}
 
             optimizer.zero_grad()
             

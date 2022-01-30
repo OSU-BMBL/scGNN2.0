@@ -91,7 +91,6 @@ class Performance_Metrics():
                 'sc_error_median', 'sc_error_median_inv', 'sc_error_median_entire',
                 'bulk_error_median', 'bulk_error_median_inv', 'bulk_error_median_entire',
                 'sc_bulk_error_median', 'sc_bulk_error_median_inv', 'sc_bulk_error_median_entire',
-                'feature_error_median', 'feature_error_median_inv', 'feature_error_median_entire',
                 'error_median_by_ct'
             ]
             
