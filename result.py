@@ -13,12 +13,12 @@ from deconvolution import average_by_ct
 
 from sklearn.metrics import adjusted_rand_score, silhouette_score
 import networkx as nx
-# from similarity_index_of_label_graph_package import similarity_index_of_label_graph_class
+from similarity_index_of_label_graph_package import similarity_index_of_label_graph_class
 
 
 class Performance_Metrics():
 
-    def __init__(self, X_sc, X_process, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param):
+    def __init__(self, X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param):
         
         # args
         self.given_cell_type_labels = args.given_cell_type_labels
@@ -49,6 +49,7 @@ class Performance_Metrics():
             'sc_error_median', 'sc_error_median_inv', 'sc_error_median_entire',
             'bulk_error_median', 'bulk_error_median_inv', 'bulk_error_median_entire',
             'sc_bulk_error_median', 'sc_bulk_error_median_inv', 'sc_bulk_error_median_entire',
+            'feature_error_median', 'feature_error_median_inv', 'feature_error_median_entire',
             'error_median_by_ct',
             'graph_similarity', 'graph_change',
             'cluster_count', 'cluster_size_list',
@@ -56,14 +57,14 @@ class Performance_Metrics():
             'time_used'
         ]
 
-        self.unused_metric_names = ['graph_similarity']
+        self.unused_metric_names = []
 
         self.metrics = {name:[] for name in self.metric_names}
 
         # add initial values
-        self.update(self.cluster_labels_old, X_process, edgeList, graph_embed, param)
+        self.update(self.cluster_labels_old, X_process, X_feature_recon, edgeList, graph_embed, param)
     
-    def update(self, cluster_labels, X_imputed, edgeList, graph_embed, param=None):
+    def update(self, cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, param=None):
         
         info_log.print('--------> Computing all metrics ...')
         
@@ -90,12 +91,17 @@ class Performance_Metrics():
                 'sc_error_median', 'sc_error_median_inv', 'sc_error_median_entire',
                 'bulk_error_median', 'bulk_error_median_inv', 'bulk_error_median_entire',
                 'sc_bulk_error_median', 'sc_bulk_error_median_inv', 'sc_bulk_error_median_entire',
+                'feature_error_median', 'feature_error_median_inv', 'feature_error_median_entire',
                 'error_median_by_ct'
             ]
             
         ## On imputed matrix
         error_median, error_median_inv, error_median_entire = benchmark_util.imputation_error_handler(X_imputed, self.X_true, self.dropout_prob, self.dropout_info)
 
+        ## On Feature AE output
+        feature_error_median, feature_error_median_inv, feature_error_median_entire = benchmark_util.imputation_error_handler(X_feature_recon, self.X_true, self.dropout_prob, self.dropout_info)
+
+        # For Bulk Deconvolution testing
         if self.use_bulk and param['epoch_num'] == 0:
 
             # for name in name_list:
@@ -139,8 +145,8 @@ class Performance_Metrics():
         # Graph similarity evaluation (beta)
         graph_new = nx.Graph()
         graph_new.add_weighted_edges_from(edgeList)
-        # similarity_index_of_label_graph = similarity_index_of_label_graph_class()
-        graph_similarity = None # similarity_index_of_label_graph(self.graph_old, graph_new)
+        similarity_index_of_label_graph = similarity_index_of_label_graph_class()
+        graph_similarity = similarity_index_of_label_graph(self.graph_old, graph_new)
 
         # Graph changes
         adj_new_temp = nx.adjacency_matrix(graph_new)

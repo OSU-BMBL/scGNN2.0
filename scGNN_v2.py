@@ -2,6 +2,7 @@
 """
 # Parse arguments
 import argparse
+from ctypes import util
 parser = argparse.ArgumentParser(description='Main program for scGNN v2')
 # Program related
 parser.add_argument('--use_bulk', action='store_true', default=False, 
@@ -141,6 +142,7 @@ from time import time
 import load
 import preprocess
 import benchmark_util
+import util
 # from ccs import CCC_graph_handler
 import result
 from auto_encoders.feature_AE import feature_AE_handler
@@ -186,22 +188,23 @@ CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 # Main program starts here
 info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
+param['total_epoch'] = args.total_epoch
 x_dropout = x_dropout['expr']
 X_process = x_dropout.copy()
 
-X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
+X_embed, X_feature_recon, model_state = feature_AE_handler(X_process, TRS, args, param)
 
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop ...')
-metrics = result.Performance_Metrics(X_sc, X_process, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param)
+metrics = result.Performance_Metrics(X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param)
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
     param['epoch_num'] = i+1
 
     cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
 
-    param['impute_regu'] = (adj, cluster_labels)
+    param['impute_regu'] = util.graph_celltype_regu_handler(adj, cluster_labels)
     X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
@@ -210,14 +213,14 @@ for i in range(args.total_epoch):
     else:
         X_imputed = X_imputed_sc
 
-    X_embed, _, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
+    X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
     X_process = X_imputed
 
     # Evaluate performance metrics
-    metrics.update(cluster_labels, X_imputed, edgeList, graph_embed, param)
+    metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, param)
     info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():

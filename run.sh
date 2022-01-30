@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=py_scGNN_test_on_new8
-#SBATCH --time=2:30:00
+#SBATCH --time=20:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
@@ -10,22 +10,11 @@
 set -e
 
 module load python/3.6-conda5.2
-source activate scgnnEnv
+source activate py-scgnn
 
 cd /fs/ess/PCON0022/Edison/scGNN2.0/outputs
 mkdir ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout
 cd ..
-
-# python -W ignore scGNN_v2.py \
-# --given_cell_type_labels \
-# --load_dataset_dir /fs/ess/PCON0022/Edison/datasets/raw \
-# --load_dataset_name ${dataset_name} \
-# --load_sc_dataset ${load_sc_dataset} \
-# --load_cell_type_labels ${load_cell_type_labels} \
-# --output_run_ID ${SLURM_JOB_ID} \
-# --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
-# --dropout_prob ${dropout_prob} \
-# --total_epoch 2 --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
 
 python -W ignore scGNN_v2.py \
 --given_cell_type_labels \
@@ -35,11 +24,7 @@ python -W ignore scGNN_v2.py \
 --output_run_ID ${SLURM_JOB_ID} \
 --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
---total_epoch 50
-
-# --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
-
-# --use_bulk
+--total_epoch 2 --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
 
 # sbatch --export=dataset_name=1.Semrau,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=2.Chu,dropout_prob=0.1 run.sh
@@ -76,9 +61,18 @@ python -W ignore scGNN_v2.py \
 # sbatch --export=dataset_name=Yan,dropout_prob=0 run.sh
 
 
+# --use_bulk
 
-# sbatch --export=dataset_name=Kolodziejczyk,load_sc_dataset=Kolodziejczyk_expression.csv,load_cell_type_labels=Kolodziejczyk_cell_label.csv,dropout_prob=0.1 run.sh
-# sbatch --export=dataset_name=11.Kolodziejczyk,dropout_prob=0.1 run.sh
+# python -W ignore scGNN_v2.py \
+# --given_cell_type_labels \
+# --load_dataset_dir /fs/ess/PCON0022/Edison/datasets/raw \
+# --load_dataset_name ${dataset_name} \
+# --load_sc_dataset ${load_sc_dataset} \
+# --load_cell_type_labels ${load_cell_type_labels} \
+# --output_run_ID ${SLURM_JOB_ID} \
+# --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
+# --dropout_prob ${dropout_prob} \
+# --total_epoch 2 --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
 
 # sbatch --export=dataset_name=Biase,load_sc_dataset=Biase_expression.csv,load_cell_type_labels=Biase_cell_label.csv,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=Deng,load_sc_dataset=Deng_expression.csv,load_cell_type_labels=Deng_cell_label.csv,dropout_prob=0.1 run.sh

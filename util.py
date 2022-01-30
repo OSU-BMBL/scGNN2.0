@@ -12,6 +12,12 @@ from sklearn.manifold import TSNE
 import torch
 from torch.utils.data import Dataset
 
+def graph_celltype_regu_handler(adj, cluster_labels):
+    adjdense = sp.csr_matrix.todense(adj)
+    celltypesample = generateCelltypeRegu(cluster_labels)
+    
+    return (adjdense, celltypesample)
+
 def generateCelltypeRegu(listResult):
     celltypesample = np.zeros((len(listResult), len(listResult)))
     tdict = {}
@@ -32,7 +38,6 @@ def generateCelltypeRegu(listResult):
                 celltypesample[item1, item2] = 1.0
 
     return celltypesample
-
 
 class ExpressionDataset(Dataset):
     def __init__(

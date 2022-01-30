@@ -4,7 +4,7 @@ from torch.nn import functional as F
 
 import info_log
 
-def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param, impute_regu=None):
+def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param, regu_type, impute_regu):
     '''
     EMFlag indicates whether in EM processes.
         If in EM, use regulized-type parsed from program entrance,
@@ -12,6 +12,16 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
         taskType: celltype or imputation
     '''
 
+    if len(regu_type) == 2:
+        current_regu_type = regu_type[param['epoch_num'] > 0]
+    else: # len(regu_type) == 3:
+        if param['epoch_num'] == 0: # Pre EM
+            current_regu_type = regu_type[0]
+        elif param['epoch_num'] == param['total_epoch']: # Last epoch
+            current_regu_type = regu_type[2]
+        else:
+            current_regu_type = regu_type[1] # Non-final EM epochs
+    
     for epoch in range(total_epoch):
         model.train()
         train_loss = 0
@@ -21,28 +31,36 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
             # Send data and regulation matrix to device
             data = data.type(torch.FloatTensor).to(param['device'])
             data_masked = F.dropout(data, p=masked_prob)
-            regulationMatrixBatch = TRS[dataindex, :].to(param['device'])
+            impute_regu['LTMG_regu'] = TRS[dataindex, :].to(param['device'])
 
             optimizer.zero_grad()
             
             z, recon_batch = model.forward(data_masked) # reconstructed batch and encoding layer as outputs
             
             # Calculate loss
-            if param['epoch_num'] == 0: # pre EM Feature AE
-                loss = loss_function_graph(
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = regulationMatrixBatch, 
-                    regu_strength = regu_strength,
-                    regularizer_type = 'LTMG')
-            elif impute_regu is not None: # EM Imputation AE
-                loss = loss_function_graph(
-                    recon_batch,
-                    data.view(-1, recon_batch.shape[1]),
-                    regulationMatrix=impute_regu,
-                    regu_strength=regu_strength,
-                    regularizer_type='Celltype')
+            loss = loss_function_graph( 
+                recon_batch,
+                data.view(-1, recon_batch.shape[1]),
+                regulationMatrix = impute_regu,
+                regu_strength = regu_strength,
+                regularizer_type = current_regu_type)
 
+            # if param['epoch_num'] == 0: # pre EM Feature AE
+            #     loss = loss_function_graph(
+            #         recon_batch, 
+            #         data.view(-1, recon_batch.shape[1]), 
+            #         regulationMatrix = regulationMatrixBatch, 
+            #         regu_strength = regu_strength,
+            #         regularizer_type = 'LTMG')
+            # elif impute_regu is not None: # EM Imputation AE
+            #     loss = loss_function_graph(
+            #         recon_batch,
+            #         data.view(-1, recon_batch.shape[1]),
+            #         regulationMatrix=impute_regu,
+            #         regu_strength=regu_strength,
+            #         regularizer_type='Celltype')
+
+            if current_regu_type == 'Celltype':
                 l1 = 0.0
                 l2 = 0.0
                 for p in model.parameters():
@@ -50,13 +68,13 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
                     l2 = l2 + p.pow(2).sum()
                 loss = loss + 1 * l1 + 0 * l2
 
-            else: # EM Feature AE
-                loss = loss_function_graph( 
-                    recon_batch,
-                    data.view(-1, recon_batch.shape[1]),
-                    regulationMatrix=regulationMatrixBatch,
-                    regu_strength=regu_strength,
-                    regularizer_type='noregu')
+            # else: # EM Feature AE
+            #     loss = loss_function_graph( 
+            #         recon_batch,
+            #         data.view(-1, recon_batch.shape[1]),
+            #         regulationMatrix=regulationMatrixBatch,
+            #         regu_strength=regu_strength,
+            #         regularizer_type='noregu')
                 
 
             # Backprop and Update
@@ -92,12 +110,12 @@ def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='nor
         loss = BCE
 
     elif regularizer_type == 'LTMG':
-        loss = BCE + regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix ).sum()
+        loss = BCE + regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix['LTMG_regu'] ).sum()
 
     elif regularizer_type == 'Celltype':
 
-        graphregu, celltyperegu = regulationMatrix
-        loss = 0.3 * ( graphregu @ F.mse_loss(recon_x, x, reduction='none') ).sum() + \
-            0.1 * ( celltyperegu @ F.mse_loss(recon_x, x, reduction='none') ).sum()
+        # graphregu, celltyperegu = regulationMatrix
+        loss = 0.3 * ( regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') ).sum() + \
+            0.1 * ( regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') ).sum()
 
     return loss
