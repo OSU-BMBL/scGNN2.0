@@ -48,21 +48,6 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
                 regu_strength = regu_strength,
                 regularizer_type = current_regu_type)
 
-            # if param['epoch_num'] == 0: # pre EM Feature AE
-            #     loss = loss_function_graph(
-            #         recon_batch, 
-            #         data.view(-1, recon_batch.shape[1]), 
-            #         regulationMatrix = regulationMatrixBatch, 
-            #         regu_strength = regu_strength,
-            #         regularizer_type = 'LTMG')
-            # elif impute_regu is not None: # EM Imputation AE
-            #     loss = loss_function_graph(
-            #         recon_batch,
-            #         data.view(-1, recon_batch.shape[1]),
-            #         regulationMatrix=impute_regu,
-            #         regu_strength=regu_strength,
-            #         regularizer_type='Celltype')
-
             if current_regu_type == 'Celltype':
                 l1 = 0.0
                 l2 = 0.0
@@ -70,15 +55,6 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
                     l1 = l1 + p.abs().sum()
                     l2 = l2 + p.pow(2).sum()
                 loss = loss + 1 * l1 + 0 * l2
-
-            # else: # EM Feature AE
-            #     loss = loss_function_graph( 
-            #         recon_batch,
-            #         data.view(-1, recon_batch.shape[1]),
-            #         regulationMatrix=regulationMatrixBatch,
-            #         regu_strength=regu_strength,
-            #         regularizer_type='noregu')
-                
 
             # Backprop and Update
             loss.backward()

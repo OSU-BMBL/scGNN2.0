@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=py_scGNN_test_on_new8
-#SBATCH --time=2:30:00
+#SBATCH --time=3:00:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
