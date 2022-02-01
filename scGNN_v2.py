@@ -2,7 +2,6 @@
 """
 # Parse arguments
 import argparse
-from ctypes import util
 parser = argparse.ArgumentParser(description='Main program for scGNN v2')
 # Program related
 parser.add_argument('--use_bulk', action='store_true', default=False, 
