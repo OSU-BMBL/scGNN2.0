@@ -83,18 +83,24 @@ def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='nor
     if regularizer_type in ['LTMG', 'Celltype']:
         x.requires_grad = True
     
-    BCE = (1-regu_strength) * F.mse_loss(recon_x, x, reduction=reduction) # [cell batch * gene]
+    BCE = F.mse_loss(recon_x, x, reduction=reduction) # [cell batch * gene]
     
     if regularizer_type == 'noregu':
         loss = BCE
 
     elif regularizer_type == 'LTMG':
-        loss = BCE + regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix['LTMG_regu'] ).sum()
+        loss = (1-regu_strength) * BCE + \
+            regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix['LTMG_regu'] ).sum()
 
     elif regularizer_type == 'Celltype':
 
-        # graphregu, celltyperegu = regulationMatrix
-        loss = 0.3 * ( regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') ).sum() + \
-            0.1 * ( regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') ).sum()
+        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x)[regulationMatrix['x_dropout'].nonzero()]
+        graph_regu = regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions of the connected neighbors
+        celltype_norm = regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions within the cell type to which a cell belongs
+
+        loss = 0.3 * BCE + \
+            torch.norm(nonzero_regu) + \
+            0.3 * graph_regu.sum() + \
+            0.1 * celltype_norm.sum()
 
     return loss

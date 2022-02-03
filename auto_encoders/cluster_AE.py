@@ -31,6 +31,7 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
     adjsample = torch.from_numpy(adjdense).type(torch.FloatTensor)
     celltypesample = torch.from_numpy(celltypesample).type(torch.FloatTensor)
 
+    x_dropout = torch.from_numpy(param['x_dropout']).type(torch.FloatTensor)
     TRS = torch.from_numpy(TRS).type(torch.FloatTensor)
 
     # checkpoint, X_loader = cluster_AE_state_dict[0], cluster_AE_state_dict[1]
@@ -48,9 +49,12 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
 
         adjsample_ct = adjsample[clusterIndex][:,clusterIndex].to(param['device'])
         celltypesample_ct = celltypesample[clusterIndex][:,clusterIndex].to(param['device']) # this is just an all 1's square matrix
+        x_dropout_ct = x_dropout[clusterIndex].to(param['device'])
+
         impute_regu = {
             'graph_regu': adjsample_ct,
-            'celltype_regu': celltypesample_ct
+            'celltype_regu': celltypesample_ct,
+            'x_dropout': x_dropout_ct
         }
 
         reconUsage = X_recon[clusterIndex]

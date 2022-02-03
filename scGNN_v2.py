@@ -189,6 +189,7 @@ info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
 param['total_epoch'] = args.total_epoch
 x_dropout = x_dropout['expr']
+param['x_dropout'] = x_dropout
 X_process = x_dropout.copy()
 
 X_embed, X_feature_recon, model_state = feature_AE_handler(X_process, TRS, args, param)

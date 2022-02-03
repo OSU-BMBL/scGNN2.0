@@ -32,9 +32,12 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
         adjdense, celltypesample = param['impute_regu']
         adjsample = torch.from_numpy(adjdense).type(torch.FloatTensor).to(param['device'])
         celltypesample = torch.from_numpy(celltypesample).type(torch.FloatTensor).to(param['device'])
+        # Load x_dropout as regu
+        x_dropout = torch.from_numpy(param['x_dropout']).type(torch.FloatTensor).to(param['device'])
         impute_regu = {
             'graph_regu': adjsample,
-            'celltype_regu': celltypesample
+            'celltype_regu': celltypesample,
+            'x_dropout': x_dropout
         }
 
         feature_AE.load_state_dict(model_state['model'])
