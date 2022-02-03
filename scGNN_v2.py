@@ -172,7 +172,7 @@ X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] i
 info_log.print('\n> Setting up data for testing ...')
 x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
-result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
+# result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
@@ -204,7 +204,7 @@ for i in range(args.total_epoch):
     cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
 
     param['impute_regu'] = util.graph_celltype_regu_handler(adj, cluster_labels)
-    X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
+    X_imputed_sc = cluster_AE_handler(X_feature_recon, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
         X_imputed_bulk = deconvolution_handler(X_process, X_bulk, x_dropout, TRS, cluster_lists_of_idx, args, param)
