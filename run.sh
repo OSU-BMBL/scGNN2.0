@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_v1.2.e.3
-#SBATCH --time=2:30:00
+#SBATCH --job-name=scGNN_v1.2.e.4
+#SBATCH --time=3:00:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
@@ -63,7 +63,7 @@ python -W ignore scGNN_v2.py \
 
 
 # --use_bulk
-
+###SBATCH --gpus-per-node=1
 # python -W ignore scGNN_v2.py \
 # --given_cell_type_labels \
 # --load_dataset_dir /fs/ess/PCON0022/Edison/datasets/raw \

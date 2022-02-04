@@ -68,7 +68,7 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
             TRS = TRS,
             total_epoch = total_epoch,
             impute_regu = impute_regu,
-            regu_type = [None, 'noregu'],
+            regu_type = [None, 'Celltype'],
             regu_strength = regu_strength,
             masked_prob = masked_prob,
             param = param)

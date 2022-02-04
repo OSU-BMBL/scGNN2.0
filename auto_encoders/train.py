@@ -93,8 +93,10 @@ def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='nor
             regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix['LTMG_regu'] ).sum()
 
     elif regularizer_type == 'Celltype':
+        
+        regulationMatrix['x_dropout'].requires_grad = True
 
-        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x)[regulationMatrix['x_dropout'].nonzero()]
+        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x)[regulationMatrix['x_dropout'].nonzero(as_tuple=True)]
         graph_regu = regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions of the connected neighbors
         celltype_norm = regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions within the cell type to which a cell belongs
 
