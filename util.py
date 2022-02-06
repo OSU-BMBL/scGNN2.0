@@ -14,10 +14,19 @@ from torch.utils.data import Dataset
 
 def graph_celltype_regu_handler(adj, cluster_labels):
     adjdense = sp.csr_matrix.todense(adj)
+    adjdense = normalize_cell_cell_matrix(adjdense)
+    
     celltypesample = generateCelltypeRegu(cluster_labels)
+    celltypesample = normalize_cell_cell_matrix(celltypesample)
     
     return (adjdense, celltypesample)
 
+def normalize_cell_cell_matrix(x):
+    avg_factor = 1 / np.ma.sum(x, axis=1, keepdims=True)
+    avg_factor = np.ma.filled(avg_factor, fill_value=0)
+    avg_mtx = np.tile(avg_factor, [1, len(x)])
+    return avg_mtx * x
+    
 def generateCelltypeRegu(listResult):
     celltypesample = np.zeros((len(listResult), len(listResult)))
     tdict = {}
