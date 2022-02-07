@@ -22,7 +22,7 @@ def graph_celltype_regu_handler(adj, cluster_labels):
     return (adjdense, celltypesample)
 
 def normalize_cell_cell_matrix(x):
-    avg_factor = 1 / np.ma.sum(x, axis=1, keepdims=True)
+    avg_factor = 1 / np.ma.sum(x, axis=1).reshape((x.shape[0],-1))
     avg_factor = np.ma.filled(avg_factor, fill_value=0)
     avg_mtx = np.tile(avg_factor, [1, len(x)])
     return avg_mtx * x

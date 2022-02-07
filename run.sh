@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_v1.2.e.4
-#SBATCH --time=3:00:00
+#SBATCH --job-name=scGNN_v1.2.e.5.louvain
+#SBATCH --time=3:30:00
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
@@ -24,8 +24,8 @@ python -W ignore scGNN_v2.py \
 --output_run_ID ${SLURM_JOB_ID} \
 --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
---total_epoch 31
-# --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 
+--total_epoch 31 --clustering_louvain_only
+# --feature_AE_epoch 2 2 --graph_AE_epoch 2 --cluster_AE_epoch 2 --clustering_louvain_only
 
 # sbatch --export=dataset_name=1.Semrau,dropout_prob=0.1 run.sh
 # sbatch --export=dataset_name=2.Chu,dropout_prob=0.1 run.sh
