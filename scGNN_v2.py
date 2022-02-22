@@ -148,12 +148,13 @@ import benchmark_util
 import util
 # from ccs import CCC_graph_handler
 import result
-from auto_encoders.feature_AE import feature_AE_handler
+from auto_encoders.feature_AE import feature_AE_handler,feature_AE_withGraph_handler
 from auto_encoders.graph_AE import graph_AE_handler
 from auto_encoders.cluster_AE import cluster_AE_handler
 from clustering import clustering_handler
 from deconvolution import deconvolution_handler
 from imputation import imputation_handler
+import numpy as np
 
 # Set up the program
 param = dict()
@@ -198,6 +199,8 @@ X_process = x_dropout.copy()
 
 X_embed, X_feature_recon, model_state = feature_AE_handler(X_process, TRS, args, param)
 
+model_state_withGraph=None
+
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop ...')
@@ -218,8 +221,13 @@ for i in range(args.total_epoch):
         X_imputed = X_imputed_sc
 
     X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
+    
+    X_imputed_withGraph=np.concatenate([X_imputed,graph_embed],axis=1)
+    X_embed_withGraph, X_feature_recon_withGraph, model_state_withGraph = feature_AE_withGraph_handler(X_imputed_withGraph, 
+                                                                                                        TRS, args, param, 
+                                                                                                        model_state_withGraph)
 
-    graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
+    graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed_withGraph, CCC_graph, args, param)
 
     X_process = X_imputed
 
