@@ -1,24 +1,34 @@
 #!/bin/bash
 #SBATCH --job-name=scGNN_v1.2.e.6.longer
 #SBATCH --time=5:00:00
-#SBATCH --output="outputs/%j_info_log.txt"
+#SBATCH --output="%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --mail-type=BEGIN,END,FAIL
 
+
+dataset_name=Biase
+dropout_prob=0
+
 set -e
 
 module load python/3.6-conda5.2
-source activate py-scgnn
+source activate scgnnEnv
 
-cd /fs/ess/PCON0022/Edison/scGNN2.0/outputs
+cd /fs/ess/scratch/PCON0022/ch/scGNN2.0/outputs
+if  [ -d  ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout ]; then
+rm  -rf  mkdir ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout
+fi
+
 mkdir ${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout
+
 cd ..
 
-python -W ignore scGNN_v2.py \
+~/.conda/envs/ch/bin/python -W ignore /users/PCON0022/haocheng/scGNN2.0/scGNN_v2.py \
 --given_cell_type_labels \
 --load_use_benchmark \
+--graph_AE_use_GAT \
 --load_dataset_dir /fs/ess/PCON0022/Edison/datasets \
 --load_dataset_name ${dataset_name} \
 --output_run_ID ${SLURM_JOB_ID} \
