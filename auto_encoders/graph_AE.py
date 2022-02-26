@@ -17,6 +17,11 @@ import auto_encoders.gae.optimizer as gae_optimizer
 import auto_encoders.model as model
 import info_log
 
+def edgeList2edgeIndex(edgeList):
+    result=[[i[0],i[1]] for i in edgeList]
+    return result
+    
+
 def graph_AE_handler(X_embed, CCC_graph, args, param):
     info_log.print('--------> Starting Graph AE ...')
 
@@ -27,13 +32,17 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
 
     # Prepare matrices
     if use_GAT:
-        X_embed_normalized = normalize_features_dense(X_embed)
-        X_embed_normalized = torch.from_numpy(X_embed_normalized).type(torch.FloatTensor).to(param['device'])
+        adj, adj_train, edgeList = feature2adj(X_embed)
+        edgeIndex=edgeList2edgeIndex(edgeList)
+        edgeIndex=np.array(edgeIndex).T
+        adj_norm = gae_util.preprocess_graph(adj_train)
+        adj_label = (adj_train + sp.eye(adj_train.shape[0])).toarray()
+        zDiscret = X_embed > np.mean(X_embed, axis=0)
+        zDiscret = 1.0 * zDiscret
+        X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
+        CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
+        CCC_graph_edge_index = torch.from_numpy(edgeIndex).type(torch.LongTensor).to(param['device'])
 
-        CCC_graph_edge_index = convert_adj_to_edge_index(CCC_graph)
-        CCC_graph_edge_index = torch.from_numpy(CCC_graph_edge_index).type(torch.LongTensor).to(param['device'])
-
-        CCC_graph = torch.from_numpy(CCC_graph).type(torch.FloatTensor).to(param['device'])
     else:
         adj, adj_train, edgeList = feature2adj(X_embed)
         adj_norm = gae_util.preprocess_graph(adj_train)

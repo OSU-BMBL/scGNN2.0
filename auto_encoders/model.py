@@ -50,7 +50,7 @@ class Graph_AE(nn.Module):
         super(Graph_AE, self).__init__()
         self.gat = GAT(num_of_layers = 2, 
                         num_heads_per_layer = [2, 2], 
-                        num_features_per_layer = [dim, 64, 32])
+                        num_features_per_layer = [dim, 64, 16])
 
         self.gc1 = GraphConvolution(dim, 32, 0, act=F.relu)
         self.gc2 = GraphConvolution(32, embedding_size, 0, act=lambda x: x)

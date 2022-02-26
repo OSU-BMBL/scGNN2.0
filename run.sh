@@ -92,4 +92,3 @@ python -W ignore scGNN_v2.py \
 # sbatch --export=dataset_name=Treutlein,load_sc_dataset=Treutlein_expression.csv,load_cell_type_labels=Treutlein_cell_label.csv,dropout_prob=0 run.sh
 # sbatch --export=dataset_name=Usoskin,load_sc_dataset=Usoskin_expression.csv,load_cell_type_labels=Usoskin_cell_label.csv,dropout_prob=0 run.sh
 # sbatch --export=dataset_name=Yan,load_sc_dataset=Yan_expression.csv,load_cell_type_labels=Yan_cell_label.csv,dropout_prob=0 run.sh
-
