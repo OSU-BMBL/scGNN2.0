@@ -154,7 +154,6 @@ from auto_encoders.cluster_AE import cluster_AE_handler
 from clustering import clustering_handler
 from deconvolution import deconvolution_handler
 from imputation import imputation_handler
-import numpy as np
 
 # Set up the program
 param = dict()
