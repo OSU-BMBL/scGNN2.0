@@ -206,7 +206,7 @@ for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
     param['epoch_num'] = i+1
 
-    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList, args)
+    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList, args, ct_labels_truth)
 
     param['impute_regu'] = util.graph_celltype_regu_handler(adj, cluster_labels)
     X_imputed_sc = cluster_AE_handler(X_feature_recon, TRS, cluster_lists_of_idx, args, param, model_state)
