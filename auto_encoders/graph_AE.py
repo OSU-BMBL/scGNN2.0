@@ -30,6 +30,9 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     total_epoch = args.graph_AE_epoch
     embedding_size = args.graph_AE_embedding_size
 
+    if param['epoch_num'] > 0:
+        X_embed = np.concatenate((X_embed, param['graph_embed']), axis=1)
+
     # Prepare matrices
     if use_GAT:
         adj, adj_train, edgeList = feature2adj(X_embed)

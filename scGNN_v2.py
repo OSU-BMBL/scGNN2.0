@@ -219,6 +219,7 @@ for i in range(args.total_epoch):
 
     X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
+    param['graph_embed'] = graph_embed
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
     X_process = X_imputed
