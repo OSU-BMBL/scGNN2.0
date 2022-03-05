@@ -5,6 +5,8 @@ matplotlib
 seaborn
 umap-learn
 
+sklearn
+scipy
 torch
 
 networkx

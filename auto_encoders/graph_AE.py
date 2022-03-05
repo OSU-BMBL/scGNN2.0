@@ -7,6 +7,7 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 
+from sklearn.preprocessing import normalize
 from scipy.spatial import distance
 import scipy.sparse as sp
 import networkx as nx
@@ -29,36 +30,32 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     learning_rate = args.graph_AE_learning_rate
     total_epoch = args.graph_AE_epoch
     embedding_size = args.graph_AE_embedding_size
+    concat_prev_embed = args.graph_AE_concat_prev_embed
+    normalize_embed = args.graph_AE_normalize_embed
 
-    if param['epoch_num'] > 0:
+    if concat_prev_embed and param['epoch_num'] > 0:
         X_embed = np.concatenate((X_embed, param['graph_embed']), axis=1)
+
+    zDiscret = normalize(X_embed, axis=0) if normalize_embed else X_embed
+
+    adj, adj_train, edgeList = feature2adj(X_embed)
+    adj_norm = gae_util.preprocess_graph(adj_train)
+    adj_label = (adj_train + sp.eye(adj_train.shape[0])).toarray()
 
     # Prepare matrices
     if use_GAT:
-        adj, adj_train, edgeList = feature2adj(X_embed)
         edgeIndex=edgeList2edgeIndex(edgeList)
         edgeIndex=np.array(edgeIndex).T
-        adj_norm = gae_util.preprocess_graph(adj_train)
-        adj_label = (adj_train + sp.eye(adj_train.shape[0])).toarray()
-        zDiscret = X_embed > np.mean(X_embed, axis=0)
-        zDiscret = 1.0 * zDiscret
-        X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
-        CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
         CCC_graph_edge_index = torch.from_numpy(edgeIndex).type(torch.LongTensor).to(param['device'])
 
     else:
-        adj, adj_train, edgeList = feature2adj(X_embed)
-        adj_norm = gae_util.preprocess_graph(adj_train)
-        adj_label = (adj_train + sp.eye(adj_train.shape[0])).toarray()
-
-        zDiscret = X_embed > np.mean(X_embed, axis=0)
-        zDiscret = 1.0 * zDiscret
-        X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
-        CCC_graph_edge_index = adj_norm.to(param['device'])
-        CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
+        CCC_graph_edge_index = adj_norm.to(param['device']) 
 
         pos_weight = float(adj_train.shape[0] * adj_train.shape[0] - adj_train.sum()) / adj_train.sum()
         norm = adj_train.shape[0] * adj_train.shape[0] / float((adj_train.shape[0] * adj_train.shape[0] - adj_train.sum()) * 2)
+    
+    X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
+    CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
 
     graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size).to(param['device'])
     optimizer = optim.Adam(graph_AE.parameters(), lr=learning_rate)

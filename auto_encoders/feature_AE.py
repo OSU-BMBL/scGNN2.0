@@ -1,6 +1,8 @@
 """
 
 """
+import numpy as np
+
 import torch
 from torch.utils.data import DataLoader
 from torch import optim
@@ -18,6 +20,10 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     learning_rate = args.feature_AE_learning_rate
     regu_strength = args.feature_AE_regu_strength
     masked_prob = args.feature_AE_dropout_prob
+    concat_prev_embed = args.feature_AE_concat_prev_embed
+
+    if concat_prev_embed and param['epoch_num'] > 1:
+        X = np.concatenate((X, param['graph_embed']), axis=1)
 
     X_dataset = util.ExpressionDataset(X)
     X_loader = DataLoader(X_dataset, batch_size=batch_size, **param['dataloader_kwargs'])
@@ -60,4 +66,7 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
         'optimizer': optimizer.state_dict()
     }
 
-    return X_embed.detach().cpu().numpy(), X_recon.detach().cpu().numpy(), checkpoint # cell * {gene, embedding}
+    X_recon_out = X_recon.detach().cpu().numpy()
+    X_recon_out = X_recon_out[:,:param['n_feature_orig']]
+
+    return X_embed.detach().cpu().numpy(), X_recon_out, checkpoint # cell * {gene, embedding}

@@ -12,9 +12,10 @@ def clustering_handler(graph_embed, edgeList, args, metrics):
     info_log.print('--------> Start Clustering ...')
 
     louvain_only = args.clustering_louvain_only
+    use_flexible_k = args.clustering_use_flexible_k
     all_ct_count = metrics.metrics['cluster_count']
 
-    if len(all_ct_count) == 1:
+    if use_flexible_k or len(all_ct_count) == 1:
         listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
         k = len(np.unique(listResult))
         info_log.print(f'----------------> Louvain clusters count: {k}')

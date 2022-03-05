@@ -46,7 +46,8 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
                 data.view(-1, recon_batch.shape[1]),
                 regulationMatrix = impute_regu,
                 regu_strength = regu_strength,
-                regularizer_type = current_regu_type)
+                regularizer_type = current_regu_type,
+                param = param)
 
             if current_regu_type == 'Celltype':
                 l1 = 0.0
@@ -75,7 +76,7 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
 
     return  data_all, z_all, recon_batch_all
 
-def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='noregu', regu_strength=0.9, reduction='sum'):
+def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='noregu', regu_strength=0.9, reduction='sum', param=None):
     '''
     Regularized by the graph information
     Reconstruction + KL divergence losses summed over all elements and batch
@@ -96,7 +97,7 @@ def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='nor
         
         regulationMatrix['x_dropout'].requires_grad = True
 
-        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x)[regulationMatrix['x_dropout'].nonzero(as_tuple=True)]
+        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x[:,:param['n_feature_orig']])[regulationMatrix['x_dropout'].nonzero(as_tuple=True)]
         graph_regu = regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions of the connected neighbors
         celltype_norm = regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions within the cell type to which a cell belongs
 

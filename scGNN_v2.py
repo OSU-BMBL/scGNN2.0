@@ -61,20 +61,28 @@ parser.add_argument('--feature_AE_regu_strength', type=float, default=0.9,
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
 parser.add_argument('--feature_AE_dropout_prob', type=float, default=0, 
                     help='(float, default 0)')
+parser.add_argument('--feature_AE_concat_prev_embed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed expression matrix at t; otherwise will use expression matrix only')               
 
 # Graph AE related
 parser.add_argument('--graph_AE_epoch', type=int, default=200,
                     help='(int, default 200)')
 parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False, 
-                    help='(boolean, default False) Not fully implemented')
+                    help='(boolean, default False) If true, will use GAT for GAE layers; otherwise will use GCN layers')
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
 parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
                     help='(int, default 16) Graphh AE embedding size')
+parser.add_argument('--graph_AE_concat_prev_embed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed Feature AE embed at t for graph construction; else will construct graph using Feature AE embed only')
+parser.add_argument('--graph_AE_normalize_embed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will normalize input embed within each feature (i.e. gene); otherwise, leave the features as they are')
 
 # Clustering related
 parser.add_argument('--clustering_louvain_only', action='store_true', default=False, 
                     help='(boolean, default False) If true, will use Louvain clustering only; otherwise, first use Louvain to determine clusters count (k), then perform KMeans.')
+parser.add_argument('--clustering_use_flexible_k', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will determin k using Louvain every epoch; otherwise, will rely on the k in the first epoch')
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
@@ -193,6 +201,7 @@ info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
 param['total_epoch'] = args.total_epoch
 x_dropout = x_dropout['expr']
+param['n_feature_orig'] = x_dropout.shape[1]
 param['x_dropout'] = x_dropout
 X_process = x_dropout.copy()
 
@@ -217,9 +226,9 @@ for i in range(args.total_epoch):
     else:
         X_imputed = X_imputed_sc
 
+    param['graph_embed'] = graph_embed
     X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
-    param['graph_embed'] = graph_embed
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
     X_process = X_imputed
