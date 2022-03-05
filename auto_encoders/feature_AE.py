@@ -22,7 +22,7 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     masked_prob = args.feature_AE_dropout_prob
     concat_prev_embed = args.feature_AE_concat_prev_embed
 
-    if concat_prev_embed and param['epoch_num'] > 1:
+    if concat_prev_embed and param['epoch_num'] > 0:
         X = np.concatenate((X, param['graph_embed']), axis=1)
 
     X_dataset = util.ExpressionDataset(X)
