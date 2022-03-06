@@ -47,7 +47,6 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
         edgeIndex=edgeList2edgeIndex(edgeList)
         edgeIndex=np.array(edgeIndex).T
         CCC_graph_edge_index = torch.from_numpy(edgeIndex).type(torch.LongTensor).to(param['device'])
-
     else:
         CCC_graph_edge_index = adj_norm.to(param['device']) 
 
