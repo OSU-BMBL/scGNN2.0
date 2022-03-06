@@ -45,9 +45,13 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
             'celltype_regu': celltypesample,
             'x_dropout': x_dropout
         }
-
-        feature_AE.load_state_dict(model_state['model'])
-        # optimizer.load_state_dict(model_state['optimizer']) # Adam optimizer includes momentum, will turn this off for now
+        
+        if concat_prev_embed and param['epoch_num'] > 1:
+            feature_AE.load_state_dict(model_state['model_concat'])
+            # optimizer.load_state_dict(model_state['optimizer_concat']) # Adam optimizer includes momentum, will turn this off for now
+        elif not concat_prev_embed:
+            feature_AE.load_state_dict(model_state['model'])
+            # optimizer.load_state_dict(model_state['optimizer']) # Adam optimizer includes momentum, will turn this off for now
 
     _, X_embed, X_recon = train.train_handler(
         model = feature_AE, 
@@ -62,6 +66,11 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
         param = param)
 
     checkpoint = {
+        'model_concat': feature_AE.state_dict(),
+        'optimizer_concat': optimizer.state_dict(),
+        'model': model_state['model'],
+        'optimizer': model_state['optimizer']
+    } if concat_prev_embed and param['epoch_num'] > 0 else {
         'model': feature_AE.state_dict(),
         'optimizer': optimizer.state_dict()
     }
