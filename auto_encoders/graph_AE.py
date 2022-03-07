@@ -32,9 +32,9 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     embedding_size = args.graph_AE_embedding_size
     concat_prev_embed = args.graph_AE_concat_prev_embed
     normalize_embed = args.graph_AE_normalize_embed
-    graph_embed = param['graph_embed']
 
     if concat_prev_embed and param['epoch_num'] > 0:
+        graph_embed = param['graph_embed']
         graph_embed_norm = util.normalizer(graph_embed, base=X_embed, axis=0) if normalize_embed else graph_embed
         X_embed = np.concatenate((X_embed, graph_embed_norm), axis=1)
 

@@ -23,8 +23,11 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     concat_prev_embed = args.feature_AE_concat_prev_embed
 
     if concat_prev_embed and param['epoch_num'] > 0:
-        graph_embed_norm = util.normalizer(param['graph_embed'], base=X, axis=0)
-        X = np.concatenate((X, graph_embed_norm), axis=1)
+        if concat_prev_embed == 'graph':
+            prev_embed = util.normalizer(param['graph_embed'], base=X, axis=0)
+        else:
+            prev_embed = param['feature_embed']
+        X = np.concatenate((X, prev_embed), axis=1)
 
     X_dataset = util.ExpressionDataset(X)
     X_loader = DataLoader(X_dataset, batch_size=batch_size, **param['dataloader_kwargs'])

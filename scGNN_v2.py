@@ -61,8 +61,8 @@ parser.add_argument('--feature_AE_regu_strength', type=float, default=0.9,
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
 parser.add_argument('--feature_AE_dropout_prob', type=float, default=0, 
                     help='(float, default 0)')
-parser.add_argument('--feature_AE_concat_prev_embed', action='store_true', default=False, 
-                    help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed expression matrix at t; otherwise will use expression matrix only')               
+parser.add_argument('--feature_AE_concat_prev_embed', type=str, default=None, 
+                    help="(str, default None) Choose from {'feature', 'graph'}")               
 
 # Graph AE related
 parser.add_argument('--graph_AE_epoch', type=int, default=200,
@@ -225,7 +225,8 @@ for i in range(args.total_epoch):
         X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, x_dropout, args, param)
     else:
         X_imputed = X_imputed_sc
-
+    
+    param['feature_embed'] = X_embed
     param['graph_embed'] = graph_embed
     X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
