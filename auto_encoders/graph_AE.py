@@ -7,7 +7,6 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 
-from sklearn.preprocessing import normalize
 from scipy.spatial import distance
 import scipy.sparse as sp
 import networkx as nx
@@ -15,6 +14,7 @@ import networkx as nx
 import auto_encoders.gae.utils as gae_util
 import auto_encoders.gae.optimizer as gae_optimizer
 
+import util
 import auto_encoders.model as model
 import info_log
 
@@ -32,11 +32,13 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     embedding_size = args.graph_AE_embedding_size
     concat_prev_embed = args.graph_AE_concat_prev_embed
     normalize_embed = args.graph_AE_normalize_embed
+    graph_embed = param['graph_embed']
 
     if concat_prev_embed and param['epoch_num'] > 0:
-        X_embed = np.concatenate((X_embed, param['graph_embed']), axis=1)
+        graph_embed_norm = util.normalizer(graph_embed, base=X_embed, axis=0) if normalize_embed else graph_embed
+        X_embed = np.concatenate((X_embed, graph_embed_norm), axis=1)
 
-    zDiscret = normalize(X_embed, axis=0) if normalize_embed else X_embed
+    zDiscret = X_embed
 
     adj, adj_train, edgeList = feature2adj(X_embed)
     adj_norm = gae_util.preprocess_graph(adj_train)

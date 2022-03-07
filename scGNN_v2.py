@@ -184,7 +184,7 @@ X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] i
 info_log.print('\n> Setting up data for testing ...')
 x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
-# result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
+result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
@@ -243,7 +243,7 @@ for i in range(args.total_epoch):
 
 info_log.print('\n> Outputing results ...')
 metrics.output(args)
-result.write_out(X_sc, X_imputed, cluster_labels, graph_embed, args)
+result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, args)
 
 # Plot & Print results
 # info_log.print('\n> Plotting results ...')

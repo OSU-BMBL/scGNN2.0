@@ -3,7 +3,6 @@
 """
 import numpy as np
 
-from sklearn.preprocessing import normalize
 import torch
 from torch.utils.data import DataLoader
 from torch import optim
@@ -24,7 +23,7 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     concat_prev_embed = args.feature_AE_concat_prev_embed
 
     if concat_prev_embed and param['epoch_num'] > 0:
-        graph_embed_norm = normalize(param['graph_embed'], axis=0)
+        graph_embed_norm = util.normalizer(param['graph_embed'], base=X, axis=0)
         X = np.concatenate((X, graph_embed_norm), axis=1)
 
     X_dataset = util.ExpressionDataset(X)

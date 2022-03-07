@@ -3,6 +3,7 @@ import os
 import numpy as np
 import scipy.sparse as sp
 import pandas as pd
+from sklearn.preprocessing import minmax_scale
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -144,3 +145,15 @@ def drawTSNE(z, listResult, output_dir):
 
 def imputation_err_heatmap(X_sc, X_imputed, cluster_labels=None, args=None):
     pass
+
+def normalizer(X, base, axis=0):
+    upper = np.quantile(base, q=0.9)
+    lower = np.quantile(base, q=0.1)
+    if upper != lower:
+        normalized = minmax_scale(X, feature_range=(lower, upper), axis=axis)
+    else:
+        max = np.quantile(base, q=1)
+        min = np.quantile(base, q=0)
+        normalized = minmax_scale(X, feature_range=(min, max), axis=axis)
+
+    return normalized

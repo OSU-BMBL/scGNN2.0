@@ -221,7 +221,7 @@ class Performance_Metrics():
 
         return graph_change_is_small_enough or cell_type_pred_is_similar_enough
 
-def write_out(X_sc, X_imputed, cluster_labels, graph_embed, args):
+def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args):
     output_dir = args.output_dir
 
     info_log.print('--------> Exporting imputed expression matrix ...')
@@ -234,7 +234,13 @@ def write_out(X_sc, X_imputed, cluster_labels, graph_embed, args):
     emblist = []
     for i in range(args.graph_AE_embedding_size):
         emblist.append(f'embedding_{i+1}')
-    pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'embedding.csv'))
+    pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'graph_embedding.csv'))
+
+    info_log.print('--------> Exporting feature embeddings ...')
+    emblist = []
+    for i in range(128):
+        emblist.append(f'embedding_{i+1}')
+    pd.DataFrame(data=feature_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'feature_embedding.csv'))
     
     util.drawUMAP(graph_embed, cluster_labels, output_dir)
     util.drawTSNE(graph_embed, cluster_labels, output_dir)

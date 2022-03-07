@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_vf.0.8_FAE_GAE_concat
+#SBATCH --job-name=scGNN_vf.0.9
 #SBATCH --output="outputs_rep/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
@@ -24,4 +24,4 @@ python -W ignore scGNN_v2.py \
 --output_dir outputs_rep/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
 --total_epoch 31 --feature_AE_epoch 500 600 \
---feature_AE_concat_prev_embed --graph_AE_concat_prev_embed # --graph_AE_normalize_embed --clustering_use_flexible_k
+--feature_AE_concat_prev_embed --graph_AE_concat_prev_embed --graph_AE_normalize_embed # --clustering_use_flexible_k
