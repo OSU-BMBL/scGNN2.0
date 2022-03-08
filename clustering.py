@@ -6,31 +6,44 @@ from sklearn.cluster import KMeans
 import networkx as nx
 from igraph import * # ignore the squiggly underline, not an error
 
+import util
 import info_log
 
-def clustering_handler(graph_embed, edgeList, args, metrics):
+def clustering_handler(edgeList, args, param, metrics):
     info_log.print('--------> Start Clustering ...')
 
     louvain_only = args.clustering_louvain_only
     use_flexible_k = args.clustering_use_flexible_k
     all_ct_count = metrics.metrics['cluster_count']
+    clustering_embed = args.clustering_embed
+
+    if clustering_embed == 'graph':
+        embed = param['graph_embed']
+    elif clustering_embed == 'feature':
+        embed = param['feature_embed']
+    elif clustering_embed == 'both':
+        feature_embed_norm = util.normalizer(param['feature_embed'], base=param['graph_embed'], axis=0)
+        embed = np.concatenate((param['graph_embed'], feature_embed_norm), axis=1)
+    else:
+        info_log.print('--------> clustering_embed argument not recognized, using graph embed ...')
+        embed = param['graph_embed']
 
     if use_flexible_k or len(all_ct_count) == 1:
         listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
         k = len(np.unique(listResult))
         info_log.print(f'----------------> Louvain clusters count: {k}')
 
-        resolution =  0.8 if graph_embed.shape[0] < 2000 else 0.5 # based on num of cells
+        resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
         k = int(k * resolution) if int(k * resolution) >= 3 else 2
     else:
         k = all_ct_count[-1]
     
     if not louvain_only:
-        # resolution =  0.8 if graph_embed.shape[0] < 2000 else 0.5 # based on num of cells
+        # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
         # k = int(k * resolution) if int(k * resolution) >= 3 else 2
 
-        clustering = KMeans(n_clusters=k, random_state=0).fit(graph_embed)  # 输入k，再利用KMeans算法聚类一次，得到聚类类别及内容
-        listResult = clustering.predict(graph_embed) # (n_samples,) Index of the cluster each sample belongs to.
+        clustering = KMeans(n_clusters=k, random_state=0).fit(embed)  # 输入k，再利用KMeans算法聚类一次，得到聚类类别及内容
+        listResult = clustering.predict(embed) # (n_samples,) Index of the cluster each sample belongs to.
 
     if len(set(listResult)) > 30 or len(set(listResult)) <= 1:
         info_log.print(f"----------------> Stopping: Number of clusters is {len(set(listResult))}")

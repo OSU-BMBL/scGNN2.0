@@ -83,6 +83,8 @@ parser.add_argument('--clustering_louvain_only', action='store_true', default=Fa
                     help='(boolean, default False) If true, will use Louvain clustering only; otherwise, first use Louvain to determine clusters count (k), then perform KMeans.')
 parser.add_argument('--clustering_use_flexible_k', action='store_true', default=False, 
                     help='(boolean, default False) If true, will determin k using Louvain every epoch; otherwise, will rely on the k in the first epoch')
+parser.add_argument('--clustering_embed', type=str, default='graph', 
+                    help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")  
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
@@ -214,6 +216,8 @@ metrics = result.Performance_Metrics(X_sc, X_process, X_feature_recon, edgeList,
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
     param['epoch_num'] = i+1
+    param['feature_embed'] = X_embed
+    param['graph_embed'] = graph_embed
 
     cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList, args, metrics)
 
@@ -226,8 +230,6 @@ for i in range(args.total_epoch):
     else:
         X_imputed = X_imputed_sc
     
-    param['feature_embed'] = X_embed
-    param['graph_embed'] = graph_embed
     X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)

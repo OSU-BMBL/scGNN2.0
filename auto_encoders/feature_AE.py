@@ -25,8 +25,11 @@ def feature_AE_handler(X, TRS, args, param, model_state=None):
     if concat_prev_embed and param['epoch_num'] > 0:
         if concat_prev_embed == 'graph':
             prev_embed = util.normalizer(param['graph_embed'], base=X, axis=0)
-        else:
+        elif concat_prev_embed == 'feature':
             prev_embed = param['feature_embed']
+        else:
+            info_log.print('--------> feature_AE_concat_prev_embed argument not recognized, not using any previous embed ...')
+            prev_embed = None
         X = np.concatenate((X, prev_embed), axis=1)
 
     X_dataset = util.ExpressionDataset(X)
