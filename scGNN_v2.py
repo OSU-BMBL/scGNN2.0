@@ -219,7 +219,7 @@ for i in range(args.total_epoch):
     param['feature_embed'] = X_embed
     param['graph_embed'] = graph_embed
 
-    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList, args, metrics)
+    cluster_labels, cluster_lists_of_idx = clustering_handler(edgeList, args, param, metrics)
 
     param['impute_regu'] = util.graph_celltype_regu_handler(adj, cluster_labels)
     X_imputed_sc = cluster_AE_handler(X_feature_recon, TRS, cluster_lists_of_idx, args, param, model_state)
