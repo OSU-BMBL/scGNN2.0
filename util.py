@@ -101,13 +101,14 @@ def plot(y, xlabel='epochs', ylabel='', hline=None, output_dir='', suffix=''):
     plt.savefig(os.path.join(output_dir, f"{ylabel.replace(' ', '_')}{suffix}.png"), dpi=200)
     plt.clf()
 
-def drawUMAP(z, listResult, output_dir):
+def drawUMAP(z, listResult, output_dir, filename_suffix=None):
     """
     UMAP
     """
     reducer = umap.UMAP()
     embedding = reducer.fit_transform(z)
     size = len(set(listResult)) + 1
+    filename_suffix = f'_{filename_suffix}' if filename_suffix else ''
 
     plt.scatter(embedding[:, 0], embedding[:, 1],
                 c=listResult, cmap='Spectral', s=5)
@@ -115,7 +116,7 @@ def drawUMAP(z, listResult, output_dir):
     plt.colorbar(boundaries=np.arange(int(size)) - 0.5).set_ticks(np.arange(int(size)))
     plt.title('UMAP projection', fontsize=24)
 
-    plt.savefig(os.path.join(output_dir, f"UMAP.png"), dpi=300)
+    plt.savefig(os.path.join(output_dir, f"UMAP{filename_suffix}.png"), dpi=300)
     plt.clf()
 
 def drawTSNE(z, listResult, output_dir):

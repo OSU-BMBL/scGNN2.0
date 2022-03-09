@@ -18,7 +18,7 @@ from similarity_index_of_label_graph_package import similarity_index_of_label_gr
 
 class Performance_Metrics():
 
-    def __init__(self, X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param):
+    def __init__(self, X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, X_embed, args, param):
         
         # args
         self.given_cell_type_labels = args.given_cell_type_labels
@@ -28,8 +28,11 @@ class Performance_Metrics():
         self.ari_threshold = args.ari_threshold
         self.alpha = args.alpha
         self.use_bulk = args.use_bulk
+        self.output_intermediate = args.output_intermediate
 
         # initialization
+        self.cell = X_sc['cell']
+        self.gene = X_sc['gene']
         self.ct_labels_truth = ct_labels_truth
         self.cluster_labels_old = np.zeros_like(X_sc['cell'])
         self.graph_old = nx.Graph()
@@ -40,6 +43,9 @@ class Performance_Metrics():
         self.X_true = X_sc['expr']
         self.dropout_info = dropout_info
         self.graph_embed_old = graph_embed
+        self.feature_embed_old = X_embed
+
+        self.cluster_label_history = []
 
         # metric names and dictionary
         self.metric_names = [
@@ -54,6 +60,7 @@ class Performance_Metrics():
             'graph_similarity', 'graph_change',
             'cluster_count', 'cluster_size_list',
             'silhouette_cluster', 'silhouette_embed',
+            'silhouette_feature_embed', 'silhouette_graph_embed',
             'time_used'
         ]
 
@@ -62,9 +69,9 @@ class Performance_Metrics():
         self.metrics = {name:[] for name in self.metric_names}
 
         # add initial values
-        self.update(self.cluster_labels_old, X_process, X_feature_recon, edgeList, graph_embed, param)
+        self.update(self.cluster_labels_old, X_process, X_feature_recon, edgeList, graph_embed, X_embed, param)
     
-    def update(self, cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, param=None):
+    def update(self, cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, X_embed, param=None):
         
         info_log.print('--------> Computing all metrics ...')
         
@@ -82,8 +89,11 @@ class Performance_Metrics():
         else:
             ari_against_ground_truth = adjusted_rand_score(self.ct_labels_truth, cluster_labels) 
 
-        silhouette_cluster = silhouette_score(self.graph_embed_old, cluster_label_list) if param['epoch_num'] > 0 else None
-        silhouette_embed = silhouette_score(self.graph_embed_old, self.ct_labels_truth)
+        silhouette_cluster = silhouette_score(param['clustering_embed'], cluster_label_list) if param['epoch_num'] > 0 else None
+        silhouette_embed = silhouette_score(param['clustering_embed'], self.ct_labels_truth) if param['epoch_num'] > 0 else None
+
+        silhouette_feature_embed = silhouette_score(self.feature_embed_old, self.ct_labels_truth) 
+        silhouette_graph_embed = silhouette_score(self.graph_embed_old, self.ct_labels_truth)
 
         # Imputation evaluation
         name_list = [
@@ -165,12 +175,17 @@ class Performance_Metrics():
                 
         for name in self.metric_names:
             self.metrics[name].append(eval(name))
+        
+        self.cluster_label_history.append(cluster_label_list)
+
+        self.output_intermediate_results(cluster_labels, graph_embed, X_embed, param) if self.output_intermediate else None
 
         # Update results for next iteration
         self.cluster_labels_old = cluster_labels
         self.graph_old = graph_new
         self.adjOld = adjNew
         self.graph_embed_old = graph_embed
+        self.feature_embed_old = X_embed
 
     def output(self, args):
         info_log.print('--------> Exporting all metrics ...')
@@ -182,6 +197,43 @@ class Performance_Metrics():
         result_df = result_df.set_index([np.repeat(run_ID, len(result_df)), result_df.index]) if run_ID is not None else result_df
 
         result_df.to_csv(os.path.join(self.output_dir, 'all_metris.csv'))
+
+        if args.output_intermediate:
+            ct_history = pd.DataFrame(self.cluster_label_history, index=[i+1 for i in range(args.total_epoch)], columns=self.cell).T
+            ct_history.to_csv(os.path.join(self.output_dir, 'labels_history.csv'))
+
+    def output_intermediate_results(self, cluster_labels, graph_embed, feature_embed, param, interval=5):
+        output_dir = os.path.join(self.output_dir, 'intermediate')
+        
+        epoch_num = param['epoch_num']
+        os.mkdir(output_dir) if epoch_num == 0 and not os.path.exists(output_dir) else None
+
+        if epoch_num == 0 or epoch_num == 1 or epoch_num == param['total_epoch'] or epoch_num % interval ==0:
+
+            info_log.print('--------> Exporting graph embeddings (intermediate) ...')
+            embed_size = graph_embed.shape[1]
+            emblist = []
+            for i in range(embed_size):
+                emblist.append(f'embedding_{i+1}')
+            pd.DataFrame(data=graph_embed, index=self.cell, columns=emblist).to_csv(os.path.join(output_dir,f'graph_embedding_{epoch_num}.csv'))
+
+            info_log.print('--------> Exporting feature embeddings (intermediate) ...')
+            embed_size = feature_embed.shape[1]
+            emblist = []
+            for i in range(embed_size):
+                emblist.append(f'embedding_{i+1}')
+            pd.DataFrame(data=feature_embed, index=self.cell, columns=emblist).to_csv(os.path.join(output_dir,f'feature_embedding_{epoch_num}.csv'))
+
+            if epoch_num > 0:
+                info_log.print('--------> Exporting clustering embeddings (intermediate) ...')
+                embed_size = param['clustering_embed'].shape[1]
+                emblist = []
+                for i in range(embed_size):
+                    emblist.append(f'embedding_{i+1}')
+                pd.DataFrame(data=param['clustering_embed'], index=self.cell, columns=emblist).to_csv(os.path.join(output_dir,f'clustering_embedding_{epoch_num}.csv'))
+            
+                util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir, filename_suffix=epoch_num)
+                # util.drawTSNE(graph_embed, cluster_labels, output_dir)
 
     def plot(self):
         util.plot(self.metrics['ari_between_epochs'], ylabel='ARI Between Epochs', output_dir=self.output_dir)
@@ -210,7 +262,7 @@ class Performance_Metrics():
         ari_result_str = f"\n> ARI Against Ground Truth = {self.metrics['ari_against_ground_truth']}" if self.given_cell_type_labels else ''
         l1_result_str = f"\n> Median L1 Error = {self.metrics['error_median']}" if self.dropout_prob else ''
         total_time_str = f"\n> Total running time (seconds) = {sum(self.metrics['time_used'])}"
-        
+
         return ari_result_str + l1_result_str + total_time_str
 
     def stopping_checks(self,):
@@ -221,7 +273,7 @@ class Performance_Metrics():
 
         return graph_change_is_small_enough or cell_type_pred_is_similar_enough
 
-def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args):
+def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args, param):
     output_dir = args.output_dir
 
     info_log.print('--------> Exporting imputed expression matrix ...')
@@ -231,19 +283,28 @@ def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args)
     pd.DataFrame(data=cluster_labels, index=X_sc['cell'], columns=["labels_pred"]).to_csv(os.path.join(output_dir,'labels.csv'))
 
     info_log.print('--------> Exporting graph embeddings ...')
+    embed_size = graph_embed.shape[1]
     emblist = []
-    for i in range(args.graph_AE_embedding_size):
+    for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
     pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'graph_embedding.csv'))
 
     info_log.print('--------> Exporting feature embeddings ...')
+    embed_size = feature_embed.shape[1]
     emblist = []
-    for i in range(128):
+    for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
     pd.DataFrame(data=feature_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'feature_embedding.csv'))
+
+    info_log.print('--------> Exporting clustering embeddings ...')
+    embed_size = param['clustering_embed'].shape[1]
+    emblist = []
+    for i in range(embed_size):
+        emblist.append(f'embedding_{i+1}')
+    pd.DataFrame(data=param['clustering_embed'], index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,f'clustering_embedding.csv'))
     
-    util.drawUMAP(graph_embed, cluster_labels, output_dir)
-    util.drawTSNE(graph_embed, cluster_labels, output_dir)
+    util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir)
+    util.drawTSNE(param['clustering_embed'], cluster_labels, output_dir)
 
 def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels, args):
     output_dir = os.path.join(args.output_dir, 'preprocessed_data')

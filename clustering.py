@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn.cluster import KMeans
 
+import random
 import networkx as nx
 from igraph import * # ignore the squiggly underline, not an error
 
@@ -11,6 +12,9 @@ import info_log
 
 def clustering_handler(edgeList, args, param, metrics):
     info_log.print('--------> Start Clustering ...')
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     louvain_only = args.clustering_louvain_only
     use_flexible_k = args.clustering_use_flexible_k
@@ -27,6 +31,8 @@ def clustering_handler(edgeList, args, param, metrics):
     else:
         info_log.print('--------> clustering_embed argument not recognized, using graph embed ...')
         embed = param['graph_embed']
+    
+    param['clustering_embed'] = embed
 
     if use_flexible_k or len(all_ct_count) == 1:
         listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...

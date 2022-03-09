@@ -142,6 +142,10 @@ parser.add_argument('--output_dir', type=str, default='outputs/',
                     help="(str, default 'outputs/') Folder for storing all the outputs")
 parser.add_argument('--output_run_ID', type=int, default=None, 
                     help='(int, default None) Run ID to be printed along with metric outputs')
+parser.add_argument('--output_preprocessed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will output preprocessed data and dropout info')
+parser.add_argument('--output_intermediate', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will output intermediate results')
 
 args = parser.parse_args()
 
@@ -186,7 +190,7 @@ X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] i
 info_log.print('\n> Setting up data for testing ...')
 x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
-result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
+result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args) if args.output_preprocessed else None
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
@@ -212,7 +216,7 @@ X_embed, X_feature_recon, model_state = feature_AE_handler(X_process, TRS, args,
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop ...')
-metrics = result.Performance_Metrics(X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param)
+metrics = result.Performance_Metrics(X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, X_embed, args, param)
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
     param['epoch_num'] = i+1
@@ -237,7 +241,8 @@ for i in range(args.total_epoch):
     X_process = X_imputed
 
     # Evaluate performance metrics
-    metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, param)
+    metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, X_embed, param)
+    metrics.output_intermediate(args, param) if args.output_intermediate else None
     info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():
@@ -246,7 +251,7 @@ for i in range(args.total_epoch):
 
 info_log.print('\n> Outputing results ...')
 metrics.output(args)
-result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, args)
+result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, args, param)
 
 # Plot & Print results
 # info_log.print('\n> Plotting results ...')
