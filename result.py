@@ -199,7 +199,9 @@ class Performance_Metrics():
         result_df.to_csv(os.path.join(self.output_dir, 'all_metris.csv'))
 
         if args.output_intermediate:
-            ct_history = pd.DataFrame(self.cluster_label_history, index=[i+1 for i in range(args.total_epoch)], columns=self.cell).T
+            idx = ['Ground Truth']
+            idx.extend([i+1 for i in range(len(self.cluster_label_history)-1)])
+            ct_history = pd.DataFrame(self.cluster_label_history, index=idx, columns=self.cell).T
             ct_history.to_csv(os.path.join(self.output_dir, 'labels_history.csv'))
 
     def output_intermediate_results(self, cluster_labels, graph_embed, feature_embed, param, interval=5):

@@ -242,7 +242,6 @@ for i in range(args.total_epoch):
 
     # Evaluate performance metrics
     metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, X_embed, param)
-    metrics.output_intermediate(args, param) if args.output_intermediate else None
     info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():
