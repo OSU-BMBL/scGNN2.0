@@ -20,7 +20,7 @@ def clustering_handler(edgeList, args, param, metrics):
     use_flexible_k = args.clustering_use_flexible_k
     all_ct_count = metrics.metrics['cluster_count']
     clustering_embed = args.clustering_embed
-    avg_factor = 0.95
+    avg_factor = 0.99
 
     if clustering_embed == 'graph':
         embed = param['graph_embed']
@@ -48,7 +48,8 @@ def clustering_handler(edgeList, args, param, metrics):
         k_prev = all_ct_count[-1]
         k_exp = avg_factor * k_prev + (1-avg_factor) * k_resolution
         k = max(round(k_exp), 2)
-        # k = k_prev
+        info_log.print(f'----------------> Exponentially adjusted clusters count: {k}')
+        k = k_prev
     
     if not louvain_only:
         # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
