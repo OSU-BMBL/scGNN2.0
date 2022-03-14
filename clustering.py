@@ -1,7 +1,7 @@
 """
 """
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AffinityPropagation
 
 import random
 import networkx as nx
@@ -20,6 +20,7 @@ def clustering_handler(edgeList, args, param, metrics):
     use_flexible_k = args.clustering_use_flexible_k
     all_ct_count = metrics.metrics['cluster_count']
     clustering_embed = args.clustering_embed
+    clustering_method = args.clustering_method
     avg_factor = 0.99
 
     if clustering_embed == 'graph':
@@ -55,8 +56,10 @@ def clustering_handler(edgeList, args, param, metrics):
         # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
         # k = int(k * resolution) if int(k * resolution) >= 3 else 2
 
-        clustering = KMeans(n_clusters=k, random_state=0).fit(embed)  # 输入k，再利用KMeans算法聚类一次，得到聚类类别及内容
-        listResult = clustering.predict(embed) # (n_samples,) Index of the cluster each sample belongs to.
+        if clustering_method == 'KMeans':
+            listResult = KMeans(n_clusters=k, random_state=0).fit_predict(embed)  # (n_samples,) Index of the cluster each sample belongs to
+        elif clustering_method == 'AffinityPropagation':
+            listResult = AffinityPropagation(random_state=args.seed).fit_predict(embed)
 
     if len(set(listResult)) > 30 or len(set(listResult)) <= 1:
         info_log.print(f"----------------> Stopping: Number of clusters is {len(set(listResult))}")

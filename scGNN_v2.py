@@ -84,7 +84,9 @@ parser.add_argument('--clustering_louvain_only', action='store_true', default=Fa
 parser.add_argument('--clustering_use_flexible_k', action='store_true', default=False, 
                     help='(boolean, default False) If true, will determin k using Louvain every epoch; otherwise, will rely on the k in the first epoch')
 parser.add_argument('--clustering_embed', type=str, default='graph', 
-                    help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")  
+                    help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")
+parser.add_argument('--clustering_method', type=str, default='KMeans', 
+                    help="(str, default 'KMeans') Choose from {'KMeans', 'AffinityPropagation'}")  
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,

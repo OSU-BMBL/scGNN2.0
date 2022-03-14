@@ -234,7 +234,8 @@ class Performance_Metrics():
                     emblist.append(f'embedding_{i+1}')
                 pd.DataFrame(data=param['clustering_embed'], index=self.cell, columns=emblist).to_csv(os.path.join(output_dir,f'clustering_embedding_{epoch_num}.csv'))
             
-                util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir, filename_suffix=epoch_num)
+                util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir, filename_suffix=f'pred_{epoch_num}')
+                util.drawUMAP(param['clustering_embed'], self.ct_labels_truth, output_dir, filename_suffix=f'true_{epoch_num}')
                 # util.drawTSNE(graph_embed, cluster_labels, output_dir)
 
     def plot(self):
