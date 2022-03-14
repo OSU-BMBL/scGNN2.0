@@ -58,7 +58,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
     CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
 
-    graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size).to(param['device'])
+    graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size, args.gat_dropout).to(param['device'])
     optimizer = optim.Adam(graph_AE.parameters(), lr=learning_rate)
 
     for epoch in range(total_epoch):
@@ -153,6 +153,36 @@ def calculateKNNgraphDistanceMatrixStatsSingleThread(featureMatrix, distanceType
                 weight = 0.0
             edgeList.append((i, res[0][j], weight))
     
+    return edgeList
+
+def v1_calculateKNNgraphDistanceMatrixStatsSingleThread(featureMatrix, distanceType='euclidean', k=10):
+    r"""
+    Thresholdgraph: KNN Graph with stats one-std based methods, SingleThread version
+    """       
+    print("generate new edgelist, v1!!")
+    edgeList=[]
+    distance_dist=[]
+
+    for i in np.arange(featureMatrix.shape[0]):
+        tmp=featureMatrix[i,:].reshape(1,-1)
+        distMat = distance.cdist(tmp, featureMatrix, distanceType)
+        res = distMat.argsort()[:k+1]
+        tmpdist = distMat[0, res[0][1:k+1]]
+        boundary = np.mean(tmpdist) + np.std(tmpdist)
+        for j in np.arange(1, k+1):
+            # TODO: check, only exclude large outliners
+            # if (distMat[0,res[0][j]]<=mean+std) and (distMat[0,res[0][j]]>=mean-std):
+            if distMat[0,res[0][j]]<=boundary:
+                weight = 1.0-distMat[0,res[0][j]]/boundary
+                distance_dist.append(weight)
+            else:
+                weight = 0.0
+            edgeList.append((i, res[0][j], weight))
+
+    # with open("/users/PCON0022/haocheng/scGNN/scGNN2.0/weights.txt",'a+') as f:
+    #     list_str=",".join(map(str,distance_dist))
+    #     f.write(f'{list_str}\n')
+
     return edgeList
 
 def edgeList2edgeDict(edgeList, nodesize):
