@@ -69,6 +69,7 @@ parser.add_argument('--graph_AE_epoch', type=int, default=200,
                     help='(int, default 200)')
 parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False, 
                     help='(boolean, default False) If true, will use GAT for GAE layers; otherwise will use GCN layers')
+parser.add_argument('--gat_dropout', type=float, default=0)
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
 parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
