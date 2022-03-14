@@ -21,6 +21,7 @@ def clustering_handler(edgeList, args, param, metrics):
     all_ct_count = metrics.metrics['cluster_count']
     clustering_embed = args.clustering_embed
     clustering_method = args.clustering_method
+    use_DiGraph = args.clustering_DiGraph
     avg_factor = 0.99
 
     if clustering_embed == 'graph':
@@ -36,7 +37,7 @@ def clustering_handler(edgeList, args, param, metrics):
     
     param['clustering_embed'] = embed
 
-    listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
+    listResult, size = generateLouvainCluster(edgeList, use_DiGraph)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
     k_Louvain = len(np.unique(listResult))
     info_log.print(f'----------------> Louvain clusters count: {k_Louvain}')
 
@@ -69,16 +70,25 @@ def clustering_handler(edgeList, args, param, metrics):
     info_log.print(f'----------------> Total Cluster Number: {len(set(listResult))}')
     return cluster_output_handler(listResult) # tuple{'ct_list', 'lists_of_idx'}
 
-def generateLouvainCluster(edgeList):
+def generateLouvainCluster(edgeList, use_DiGraph):
     """
     Louvain Clustering using igraph
     """
-    Gtmp = nx.Graph()
-    Gtmp.add_weighted_edges_from(edgeList)
-    W = nx.adjacency_matrix(Gtmp)
-    W = W.todense()
-    graph = Graph.Weighted_Adjacency(
-        W.tolist(), mode=ADJ_UNDIRECTED, attr="weight", loops=False) # ignore the squiggly underline, not errors
+    if use_DiGraph:
+        Gtmp = nx.DiGraph()
+        Gtmp.add_weighted_edges_from(edgeList)
+        W = nx.adjacency_matrix(Gtmp)
+        W = W.todense()
+        graph = Graph.Weighted_Adjacency(
+            W.tolist(), mode='directed', attr="weight", loops=False) # ignore the squiggly underline, not errors
+    else:
+        Gtmp = nx.Graph()
+        Gtmp.add_weighted_edges_from(edgeList)
+        W = nx.adjacency_matrix(Gtmp)
+        W = W.todense()
+        graph = Graph.Weighted_Adjacency(
+            W.tolist(), mode='undirected', attr="weight", loops=False) # ignore the squiggly underline, not errors
+
     louvain_partition = graph.community_multilevel(
         weights=graph.es['weight'], return_levels=False)
     size = len(louvain_partition)

@@ -93,7 +93,9 @@ parser.add_argument('--clustering_use_flexible_k', action='store_true', default=
 parser.add_argument('--clustering_embed', type=str, default='graph', 
                     help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")
 parser.add_argument('--clustering_method', type=str, default='KMeans', 
-                    help="(str, default 'KMeans') Choose from {'KMeans', 'AffinityPropagation'}")  
+                    help="(str, default 'KMeans') Choose from {'KMeans', 'AffinityPropagation'}") 
+parser.add_argument('--clustering_DiGraph', action='store_true', default=False, 
+                    help='(boolean, default False)')
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
