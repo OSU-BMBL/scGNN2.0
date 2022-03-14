@@ -23,6 +23,9 @@ python -W ignore scGNN_v2.py \
 --output_run_ID ${SLURM_JOB_ID} \
 --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
---total_epoch 50 --feature_AE_epoch 500 600 \
+--total_epoch 20 --feature_AE_epoch 500 600 \
 --output_intermediate \
+--graph_AE_neighborhood_factor 0.1 --graph_AE_graph_construction v1
+
+# --graph_AE_retain_weights
 # --graph_AE_concat_prev_embed --graph_AE_normalize_embed # --clustering_use_flexible_k --clustering_embed both 

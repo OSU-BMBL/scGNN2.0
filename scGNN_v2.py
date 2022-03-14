@@ -69,7 +69,7 @@ parser.add_argument('--graph_AE_epoch', type=int, default=200,
                     help='(int, default 200)')
 parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False, 
                     help='(boolean, default False) If true, will use GAT for GAE layers; otherwise will use GCN layers')
-parser.add_argument('--gat_dropout', type=float, default=0)
+parser.add_argument('--graph_AE_GAT_dropout', type=float, default=0)
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
 parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
@@ -78,6 +78,12 @@ parser.add_argument('--graph_AE_concat_prev_embed', action='store_true', default
                     help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed Feature AE embed at t for graph construction; else will construct graph using Feature AE embed only')
 parser.add_argument('--graph_AE_normalize_embed', action='store_true', default=False, 
                     help='(boolean, default False) If true, will normalize input embed within each feature (i.e. gene); otherwise, leave the features as they are')
+parser.add_argument('--graph_AE_graph_construction', type=str, default='v0', 
+                    help="(str, default v0) Choose from {'v0', 'v1', 'v2'}")
+parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=10,
+                    help='(int, default 10)')
+parser.add_argument('--graph_AE_retain_weights', action='store_true', default=False, 
+                    help='(boolean, default False)')
 
 # Clustering related
 parser.add_argument('--clustering_louvain_only', action='store_true', default=False, 
