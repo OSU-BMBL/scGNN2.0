@@ -46,7 +46,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     if normalize_embed == 'sum1':
         zDiscret = normalize_features_dense(X_embed)
     elif normalize_embed == 'binary':
-        zDiscret = int(X_embed > np.mean(X_embed, axis=0))
+        zDiscret = 1.0 * (X_embed > np.mean(X_embed, axis=0))
     else:
         zDiscret = X_embed
 

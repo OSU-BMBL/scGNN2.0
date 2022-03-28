@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_vf.2.3
+#SBATCH --job-name=scGNN_vf.2.3_sum1
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1
@@ -23,10 +23,10 @@ python -W ignore scGNN_v2.py \
 --output_run_ID ${SLURM_JOB_ID} \
 --output_dir outputs/${SLURM_JOB_ID}_${dataset_name}_${dropout_prob}_dropout \
 --dropout_prob ${dropout_prob} \
---total_epoch 20 --feature_AE_epoch 500 600 \
+--total_epoch 30 --feature_AE_epoch 500 600 \
 --output_intermediate \
 --graph_AE_neighborhood_factor 0.1 --graph_AE_graph_construction v2 \
---clustering_use_flexible_k
+--clustering_use_flexible_k --graph_AE_normalize_embed sum1 --graph_AE_use_GAT
 
 # --graph_AE_retain_weights
 # --graph_AE_concat_prev_embed --graph_AE_normalize_embed sum1 binary # --clustering_use_flexible_k --clustering_embed both 
