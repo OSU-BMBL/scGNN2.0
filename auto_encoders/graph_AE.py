@@ -37,13 +37,18 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     neighborhood_factor = args.graph_AE_neighborhood_factor
     retain_weights = args.graph_AE_retain_weights
 
-
     if concat_prev_embed and param['epoch_num'] > 0:
         graph_embed = param['graph_embed']
-        graph_embed_norm = util.normalizer(graph_embed, base=X_embed, axis=0) if normalize_embed else graph_embed
+        graph_embed_norm = util.normalizer(graph_embed, base=X_embed, axis=0)
         X_embed = np.concatenate((X_embed, graph_embed_norm), axis=1)
 
-    zDiscret = X_embed
+    
+    if normalize_embed == 'sum1':
+        zDiscret = normalize_features_dense(X_embed)
+    elif normalize_embed == 'binary':
+        zDiscret = int(X_embed > np.mean(X_embed, axis=0))
+    else:
+        zDiscret = X_embed
 
     adj, adj_train, edgeList = feature2adj(X_embed, graph_construction, neighborhood_factor, retain_weights)
     adj_norm = gae_util.preprocess_graph(adj_train)
@@ -140,16 +145,20 @@ def feature2adj(X_embed, graph_construction, neighborhood_factor, retain_weights
     else:
         graphdict = edgeList2edgeDict(edgeList, X_embed.shape[0])
         adj_return = nx.adjacency_matrix(nx.from_dict_of_lists(graphdict))
+
     adj = adj_return.copy()
-    adj_orig = adj
+    # adj_orig = adj
 
     # Clear diagonal elements (no self loop)
-    adj_orig = adj_orig - sp.dia_matrix((adj_orig.diagonal()[np.newaxis, :], [0]), shape=adj_orig.shape)
-    adj_orig.eliminate_zeros()
+    # adj_orig = adj_orig - sp.dia_matrix((adj_orig.diagonal()[np.newaxis, :], [0]), shape=adj_orig.shape)
+    # adj_orig.eliminate_zeros()
 
     # build test set with 10% positive links, edge lists only contain single direction of edge!
-    adj_train, train_edges, val_edges, val_edges_false, test_edges, test_edges_false = gae_util.mask_test_edges(adj)
-    # adj = adj_train
+    # adj_train, train_edges, val_edges, val_edges_false, test_edges, test_edges_false = gae_util.mask_test_edges(adj)
+
+    # Clear diagonal elements (no self loop)
+    adj_train = adj - sp.dia_matrix((adj.diagonal()[np.newaxis, :], [0]), shape=adj.shape)
+    adj_train.eliminate_zeros()
 
     return adj_return, adj_train, edgeList
 
@@ -251,10 +260,8 @@ def v2_calculateKNNgraphDistanceMatrixStatsSingleThread(featureMatrix, distanceT
         distMat = distance.cdist(tmp, featureMatrix, distanceType)
         res = distMat.argsort()[:k+1]
         tmpdist = distMat[0, res[0][1:k+1]]
-        boundary = np.mean(tmpdist) + np.std(tmpdist)
+        # boundary = np.mean(tmpdist) + np.std(tmpdist)
         for j in np.arange(1, k+1):
-            # TODO: check, only exclude large outliners
-            # if (distMat[0,res[0][j]]<=mean+std) and (distMat[0,res[0][j]]>=mean-std):
             weight = 1 / (distMat[0,res[0][j]] + 1e-16)
             edgeList.append((i, res[0][j], weight))
     

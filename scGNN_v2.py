@@ -76,8 +76,8 @@ parser.add_argument('--graph_AE_embedding_size', type=int, default=16,
                     help='(int, default 16) Graphh AE embedding size')
 parser.add_argument('--graph_AE_concat_prev_embed', action='store_true', default=False, 
                     help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed Feature AE embed at t for graph construction; else will construct graph using Feature AE embed only')
-parser.add_argument('--graph_AE_normalize_embed', action='store_true', default=False, 
-                    help='(boolean, default False) If true, will normalize input embed within each feature (i.e. gene); otherwise, leave the features as they are')
+parser.add_argument('--graph_AE_normalize_embed', type=str, default=None, 
+                    help="(str, default None) Choose from {None, 'sum1', 'binary'}")
 parser.add_argument('--graph_AE_graph_construction', type=str, default='v0', 
                     help="(str, default v0) Choose from {'v0', 'v1', 'v2'}")
 parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=10,
@@ -94,8 +94,6 @@ parser.add_argument('--clustering_embed', type=str, default='graph',
                     help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")
 parser.add_argument('--clustering_method', type=str, default='KMeans', 
                     help="(str, default 'KMeans') Choose from {'KMeans', 'AffinityPropagation'}") 
-parser.add_argument('--clustering_DiGraph', action='store_true', default=False, 
-                    help='(boolean, default False)')
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
