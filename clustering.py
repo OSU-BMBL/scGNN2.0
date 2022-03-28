@@ -21,7 +21,7 @@ def clustering_handler(edgeList, args, param, metrics):
     all_ct_count = metrics.metrics['cluster_count']
     clustering_embed = args.clustering_embed
     clustering_method = args.clustering_method
-    avg_factor = 0.99
+    avg_factor = 0.95
 
     if clustering_embed == 'graph':
         embed = param['graph_embed']
@@ -41,19 +41,16 @@ def clustering_handler(edgeList, args, param, metrics):
     info_log.print(f'----------------> Louvain clusters count: {k_Louvain}')
 
     resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
-    k_resolution = k_Louvain * resolution
-
+    k_resolution = max(k_Louvain * resolution, 2)
+    
     if use_flexible_k or len(all_ct_count) == 1:
-        k = max(round(k_resolution), 2)
+        param['k_float'] = k_resolution
     else:
-        # k_prev = all_ct_count[-1]
-        # k_exp = avg_factor * k_prev + (1-avg_factor) * k_resolution
-        # k = max(round(k_exp), 2)
-        # info_log.print(f'----------------> Exponentially adjusted clusters count: {k}')
-        if param['epoch_num'] % 5 == 0:
-            k = all_ct_count[-1]
-        else:
-            k = max(round(k_resolution), 2)
+        param['k_float'] = avg_factor * param['k_float'] + (1-avg_factor) * k_resolution
+        # k = int(all_ct_count[1] + max(round(k_resolution), 2))
+
+    k = round(param['k_float'])
+    info_log.print(f'----------------> Adjusted clusters count: {k}')
     
     if not louvain_only:
         # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells

@@ -45,6 +45,8 @@ class Performance_Metrics():
         self.graph_embed_old = graph_embed
         self.feature_embed_old = X_embed
 
+        self.quick = True
+
         self.cluster_label_history = []
 
         # metric names and dictionary
@@ -64,7 +66,10 @@ class Performance_Metrics():
             'time_used'
         ]
 
-        self.unused_metric_names = []
+        self.unused_metric_names = [] if not self.quick else ['silhouette_cluster', 'silhouette_embed',
+            'silhouette_feature_embed', 'silhouette_graph_embed',
+            'feature_error_median', 'feature_error_median_inv', 'feature_error_median_entire',
+            'graph_similarity', 'graph_change']
 
         self.metrics = {name:[] for name in self.metric_names}
 
@@ -89,11 +94,11 @@ class Performance_Metrics():
         else:
             ari_against_ground_truth = adjusted_rand_score(self.ct_labels_truth, cluster_labels) 
 
-        silhouette_cluster = silhouette_score(param['clustering_embed'], cluster_label_list) if param['epoch_num'] > 0 else None
-        silhouette_embed = silhouette_score(param['clustering_embed'], self.ct_labels_truth) if param['epoch_num'] > 0 else None
+        silhouette_cluster = silhouette_score(param['clustering_embed'], cluster_label_list) if not self.quick and param['epoch_num'] > 0 else None
+        silhouette_embed = silhouette_score(param['clustering_embed'], self.ct_labels_truth) if not self.quick and param['epoch_num'] > 0 else None
 
-        silhouette_feature_embed = silhouette_score(self.feature_embed_old, self.ct_labels_truth) 
-        silhouette_graph_embed = silhouette_score(self.graph_embed_old, self.ct_labels_truth)
+        silhouette_feature_embed = silhouette_score(self.feature_embed_old, self.ct_labels_truth) if not self.quick else None
+        silhouette_graph_embed = silhouette_score(self.graph_embed_old, self.ct_labels_truth) if not self.quick else None
 
         # Imputation evaluation
         name_list = [
@@ -108,7 +113,7 @@ class Performance_Metrics():
         error_median, error_median_inv, error_median_entire = benchmark_util.imputation_error_handler(X_imputed, self.X_true, self.dropout_prob, self.dropout_info)
 
         ## On Feature AE output
-        feature_error_median, feature_error_median_inv, feature_error_median_entire = benchmark_util.imputation_error_handler(X_feature_recon, self.X_true, self.dropout_prob, self.dropout_info)
+        feature_error_median, feature_error_median_inv, feature_error_median_entire = benchmark_util.imputation_error_handler(X_feature_recon, self.X_true, self.dropout_prob, self.dropout_info) if not self.quick else None, None, None
 
         # For Bulk Deconvolution testing
         if self.use_bulk and param['epoch_num'] == 0:
@@ -152,15 +157,16 @@ class Performance_Metrics():
             self.unused_metric_names.extend(['error_median', 'error_median_inv'])
 
         # Graph similarity evaluation (beta)
-        graph_new = nx.Graph()
-        graph_new.add_weighted_edges_from(edgeList)
-        similarity_index_of_label_graph = similarity_index_of_label_graph_class()
-        graph_similarity = similarity_index_of_label_graph(self.graph_old, graph_new)
+        if not self.quick:
+            graph_new = nx.Graph()
+            graph_new.add_weighted_edges_from(edgeList)
+            similarity_index_of_label_graph = similarity_index_of_label_graph_class()
+            graph_similarity = similarity_index_of_label_graph(self.graph_old, graph_new) 
 
-        # Graph changes
-        adj_new_temp = nx.adjacency_matrix(graph_new)
-        adjNew = self.alpha * self.adj_orig + (1- self.alpha) * adj_new_temp / np.sum(adj_new_temp, axis=0)
-        graph_change = np.mean(abs(adjNew - self.adjOld))
+            # Graph changes
+            adj_new_temp = nx.adjacency_matrix(graph_new)
+            adjNew = self.alpha * self.adj_orig + (1- self.alpha) * adj_new_temp / np.sum(adj_new_temp, axis=0)
+            graph_change = np.mean(abs(adjNew - self.adjOld))
         
         # Time elapsed
         tok = time()
