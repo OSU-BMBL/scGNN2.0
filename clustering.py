@@ -46,11 +46,14 @@ def clustering_handler(edgeList, args, param, metrics):
     if use_flexible_k or len(all_ct_count) == 1:
         k = max(round(k_resolution), 2)
     else:
-        k_prev = all_ct_count[-1]
-        k_exp = avg_factor * k_prev + (1-avg_factor) * k_resolution
-        k = max(round(k_exp), 2)
-        info_log.print(f'----------------> Exponentially adjusted clusters count: {k}')
-        k = k_prev
+        # k_prev = all_ct_count[-1]
+        # k_exp = avg_factor * k_prev + (1-avg_factor) * k_resolution
+        # k = max(round(k_exp), 2)
+        # info_log.print(f'----------------> Exponentially adjusted clusters count: {k}')
+        if param['epoch_num'] % 5 == 0:
+            k = all_ct_count[-1]
+        else:
+            k = max(round(k_resolution), 2)
     
     if not louvain_only:
         # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
