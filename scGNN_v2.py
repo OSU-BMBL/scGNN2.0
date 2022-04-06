@@ -259,7 +259,7 @@ for i in range(args.total_epoch):
 
 info_log.print('\n> Outputing results ...')
 metrics.output(args)
-result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, args, param)
+result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, edgeList, args, param)
 
 # Plot & Print results
 # info_log.print('\n> Plotting results ...')

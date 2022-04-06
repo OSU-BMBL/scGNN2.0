@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=scGNN_vf.2.4
+#SBATCH --job-name=scGNN_vf.2.5
 #SBATCH --output="outputs/%j_info_log.txt"
 #SBATCH --account=PCON0022
 #SBATCH --nodes=1

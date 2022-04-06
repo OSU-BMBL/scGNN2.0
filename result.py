@@ -69,7 +69,7 @@ class Performance_Metrics():
         self.unused_metric_names = [] if not self.quick else ['silhouette_cluster', 'silhouette_embed',
             'silhouette_feature_embed', 'silhouette_graph_embed',
             'feature_error_median', 'feature_error_median_inv', 'feature_error_median_entire',
-            'graph_similarity', 'graph_change']
+            'graph_similarity']
 
         self.metrics = {name:[] for name in self.metric_names}
 
@@ -157,16 +157,17 @@ class Performance_Metrics():
             self.unused_metric_names.extend(['error_median', 'error_median_inv'])
 
         # Graph similarity evaluation (beta)
+        
+        graph_new = nx.Graph()
+        graph_new.add_weighted_edges_from(edgeList)
         if not self.quick:
-            graph_new = nx.Graph()
-            graph_new.add_weighted_edges_from(edgeList)
             similarity_index_of_label_graph = similarity_index_of_label_graph_class()
             graph_similarity = similarity_index_of_label_graph(self.graph_old, graph_new) 
 
-            # Graph changes
-            adj_new_temp = nx.adjacency_matrix(graph_new)
-            adjNew = self.alpha * self.adj_orig + (1- self.alpha) * adj_new_temp / np.sum(adj_new_temp, axis=0)
-            graph_change = np.mean(abs(adjNew - self.adjOld))
+        # Graph changes
+        adj_new_temp = nx.adjacency_matrix(graph_new)
+        adjNew = self.alpha * self.adj_orig + (1- self.alpha) * adj_new_temp / np.sum(adj_new_temp, axis=0)
+        graph_change = np.mean(abs(adjNew - self.adjOld))
         
         # Time elapsed
         tok = time()
@@ -282,7 +283,7 @@ class Performance_Metrics():
 
         return graph_change_is_small_enough or cell_type_pred_is_similar_enough
 
-def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args, param):
+def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, edgeList, args, param):
     output_dir = args.output_dir
 
     info_log.print('--------> Exporting imputed expression matrix ...')
@@ -297,6 +298,9 @@ def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args,
     for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
     pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'graph_embedding.csv'))
+    
+    info_log.print('--------> Exporting graph edgeList ...')
+    pd.DataFrame(data=edgeList, columns=['Start','End','Weight']).to_csv(os.path.join(output_dir,'graph_edgeList.csv'))
 
     info_log.print('--------> Exporting feature embeddings ...')
     embed_size = feature_embed.shape[1]
@@ -313,7 +317,7 @@ def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, args,
     pd.DataFrame(data=param['clustering_embed'], index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,f'clustering_embedding.csv'))
     
     util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir)
-    util.drawTSNE(param['clustering_embed'], cluster_labels, output_dir)
+    # util.drawTSNE(param['clustering_embed'], cluster_labels, output_dir)
 
 def write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels, args):
     output_dir = os.path.join(args.output_dir, 'preprocessed_data')

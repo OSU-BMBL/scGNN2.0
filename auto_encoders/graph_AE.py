@@ -95,7 +95,7 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
 
         info_log.interval_print(f"----------------> Epoch: {epoch+1}/{total_epoch}, Current loss: {cur_loss:.4f}", epoch=epoch, total_epoch=total_epoch)
 
-    return embed.detach().cpu().numpy(), recon_graph.detach().cpu().numpy(), edgeList, adj # edgeList added just for benchmark testing
+    return embed.detach().cpu().numpy(), recon_graph.detach().cpu().numpy(), edgeList, adj
 
 def loss_function(preds, labels):
     return F.binary_cross_entropy_with_logits(preds, labels)
