@@ -20,6 +20,12 @@ def sc_handler(args):
             os.path.join(dir_path, f'original_top_expression.csv'),
             is_cell_by_gene = False
         )
+    elif args.load_from_seurat:
+        info_log.print('--------> Loading from seurat object ...')
+        return load_dense(
+            args.seurat_obj_path,
+            is_cell_by_gene = True
+        )
     else:
         info_log.print('--------> Loading sc raw expression ...')
         return load_dense(

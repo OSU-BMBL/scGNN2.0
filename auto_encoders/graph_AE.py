@@ -68,7 +68,11 @@ def graph_AE_handler(X_embed, CCC_graph, args, param):
     X_embed_normalized = torch.from_numpy(zDiscret).type(torch.FloatTensor).to(param['device'])
     CCC_graph = torch.from_numpy(adj_label).type(torch.FloatTensor).to(param['device'])
 
-    graph_AE = model.Graph_AE(X_embed.shape[1], embedding_size, gat_dropout).to(param['device'])
+    graph_AE = model.Graph_AE(X_embed.shape[1], 
+                              embedding_size, 
+                              gat_dropout,
+                              args.multi_heads,
+                              args.gat_hid_embed).to(param['device'])
     optimizer = optim.Adam(graph_AE.parameters(), lr=learning_rate)
 
     for epoch in range(total_epoch):
