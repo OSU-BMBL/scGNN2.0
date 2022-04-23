@@ -46,11 +46,15 @@ class Feature_AE(nn.Module):
         return z, self.decode(z)
 
 class Graph_AE(nn.Module):
-    def __init__(self, dim, embedding_size):
+    def __init__(self, dim, embedding_size, 
+                            gat_dropout=0,
+                            multi_heads=2,
+                            gat_hid_embed=64):
         super(Graph_AE, self).__init__()
         self.gat = GAT(num_of_layers = 2, 
-                        num_heads_per_layer = [2, 2], 
-                        num_features_per_layer = [dim, 64, 32])
+                        num_heads_per_layer = [multi_heads, multi_heads], 
+                        num_features_per_layer = [dim, gat_hid_embed, embedding_size],
+                        dropout=gat_dropout)
 
         self.gc1 = GraphConvolution(dim, 32, 0, act=F.relu)
         self.gc2 = GraphConvolution(32, embedding_size, 0, act=lambda x: x)

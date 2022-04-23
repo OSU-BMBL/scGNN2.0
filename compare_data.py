@@ -1,13 +1,14 @@
 import numpy as np
 import pandas as pd
 
-data = '9'
+data = '1'
 
-file_a = f"./outputs/{data}/T2000_expression.csv"
+# file_a = f"./outputs/{data}/T2000_expression.csv"
+file_a = f"./outputs/{data}/dropout_top_expression.csv"
 file_b = f"./outputs/{data}/original_top_expression.csv"
 
-file_a = f"./outputs/{data}/T2000_LTMG.csv"
-file_b = f"./outputs/{data}/LTMG_0.0.csv"
+# file_a = f"./outputs/{data}/T2000_LTMG.csv"
+# file_b = f"./outputs/{data}/LTMG_0.0.csv"
 
 table_a = pd.read_csv(file_a, index_col=0, sep=None)#.sort_index()
 table_b = pd.read_csv(file_b, index_col=0, sep=None)#.sort_index()

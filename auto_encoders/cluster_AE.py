@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import scipy.sparse as sp
 import torch
 from torch import nn, optim
 from torch.utils.data import Dataset, DataLoader
@@ -21,11 +22,16 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
     regu_strength = args.cluster_AE_regu_strength
     masked_prob = args.cluster_AE_dropout_prob
 
-
     # Initialize an empty matrix for storing the results
     reconNew = np.zeros_like(X_recon)
     reconNew = torch.from_numpy(reconNew).type(torch.FloatTensor).to(param['device'])
 
+    # Load Graph and Celltype Regu
+    adjdense, celltypesample = param['impute_regu']
+    adjsample = torch.from_numpy(adjdense).type(torch.FloatTensor)
+    celltypesample = torch.from_numpy(celltypesample).type(torch.FloatTensor)
+
+    x_dropout = torch.from_numpy(param['x_dropout']).type(torch.FloatTensor)
     TRS = torch.from_numpy(TRS).type(torch.FloatTensor)
 
     # checkpoint, X_loader = cluster_AE_state_dict[0], cluster_AE_state_dict[1]
@@ -41,16 +47,28 @@ def cluster_AE_handler(X_recon, TRS, clusterIndexList, args, param, model_state)
         cluster_AE.load_state_dict(model_state['model'])
         # optimizer.load_state_dict(model_state['optimizer']) # Adam optimizer includes momentum, will turn this off for now
 
+        adjsample_ct = adjsample[clusterIndex][:,clusterIndex].to(param['device'])
+        celltypesample_ct = celltypesample[clusterIndex][:,clusterIndex].to(param['device']) # this is just an all 1's square matrix
+        x_dropout_ct = x_dropout[clusterIndex].to(param['device'])
+
+        impute_regu = {
+            'graph_regu': adjsample_ct,
+            'celltype_regu': celltypesample_ct,
+            'x_dropout': x_dropout_ct
+        }
+
         reconUsage = X_recon[clusterIndex]
         scDataInter = util.ClusterDataset(reconUsage)
         X_loader = DataLoader(scDataInter, batch_size=batch_size, **param['dataloader_kwargs'])
         
         Cluster_orig, Cluster_embed, Cluster_recon = train.train_handler(
-            model = cluster_AE,                        
-            train_loader = X_loader, 
-            optimizer = optimizer, 
-            TRS = TRS, 
+            model = cluster_AE,
+            train_loader = X_loader,
+            optimizer = optimizer,
+            TRS = TRS,
             total_epoch = total_epoch,
+            impute_regu = impute_regu,
+            regu_type = [None, 'Celltype'],
             regu_strength = regu_strength,
             masked_prob = masked_prob,
             param = param)

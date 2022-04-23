@@ -1,26 +1,65 @@
 """
 """
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AffinityPropagation
 
+import random
 import networkx as nx
 from igraph import * # ignore the squiggly underline, not an error
 
+import util
 import info_log
 
-def clustering_handler(graph_embed, edgeList):
+def clustering_handler(edgeList, args, param, metrics):
     info_log.print('--------> Start Clustering ...')
 
-    # edgeList = convert_adj_to_edge_list(CCC_graph) # commented out for benchmark testing
-    listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
-    k = len(np.unique(listResult))
-    info_log.print(f'----------------> Louvain clusters count: {k}')
-    
-    resolution =  0.8 if graph_embed.shape[0] < 2000 else 0.5 # based on num of cells
-    k = int(k * resolution) if int(k * resolution) >= 3 else 2
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
-    clustering = KMeans(n_clusters=k, random_state=0).fit(graph_embed)  # 输入k，再利用KMeans算法聚类一次，得到聚类类别及内容
-    listResult = clustering.predict(graph_embed) # (n_samples,) Index of the cluster each sample belongs to.
+    louvain_only = args.clustering_louvain_only
+    use_flexible_k = args.clustering_use_flexible_k
+    all_ct_count = metrics.metrics['cluster_count']
+    clustering_embed = args.clustering_embed
+    clustering_method = args.clustering_method
+    avg_factor = 0.95
+
+    if clustering_embed == 'graph':
+        embed = param['graph_embed']
+    elif clustering_embed == 'feature':
+        embed = param['feature_embed']
+    elif clustering_embed == 'both':
+        feature_embed_norm = util.normalizer(param['feature_embed'], base=param['graph_embed'], axis=0)
+        embed = np.concatenate((param['graph_embed'], feature_embed_norm), axis=1)
+    else:
+        info_log.print('--------> clustering_embed argument not recognized, using graph embed ...')
+        embed = param['graph_embed']
+    
+    param['clustering_embed'] = embed
+
+    listResult, size = generateLouvainCluster(edgeList)  # edgeList = (cell_i, cell_a), (cell_i, cell_b), ...
+    k_Louvain = len(np.unique(listResult))
+    info_log.print(f'----------------> Louvain clusters count: {k_Louvain}')
+
+    resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
+    k_resolution = max(k_Louvain * resolution, 2)
+    
+    if use_flexible_k or len(all_ct_count) == 1:
+        param['k_float'] = k_resolution
+    else:
+        param['k_float'] = avg_factor * param['k_float'] + (1-avg_factor) * k_resolution
+        # k = int(all_ct_count[1] + max(round(k_resolution), 2))
+
+    k = round(param['k_float'])
+    info_log.print(f'----------------> Adjusted clusters count: {k}')
+    
+    if not louvain_only:
+        # resolution =  0.8 if embed.shape[0] < 2000 else 0.5 # based on num of cells
+        # k = int(k * resolution) if int(k * resolution) >= 3 else 2
+
+        if clustering_method == 'KMeans':
+            listResult = KMeans(n_clusters=k, random_state=0).fit_predict(embed)  # (n_samples,) Index of the cluster each sample belongs to
+        elif clustering_method == 'AffinityPropagation':
+            listResult = AffinityPropagation(random_state=args.seed).fit_predict(embed)
 
     if len(set(listResult)) > 30 or len(set(listResult)) <= 1:
         info_log.print(f"----------------> Stopping: Number of clusters is {len(set(listResult))}")
@@ -39,7 +78,8 @@ def generateLouvainCluster(edgeList):
     W = nx.adjacency_matrix(Gtmp)
     W = W.todense()
     graph = Graph.Weighted_Adjacency(
-        W.tolist(), mode=ADJ_UNDIRECTED, attr="weight", loops=False) # ignore the squiggly underline, not errors
+        W.tolist(), mode='undirected', attr="weight", loops=False) # ignore the squiggly underline, not errors
+
     louvain_partition = graph.community_multilevel(
         weights=graph.es['weight'], return_levels=False)
     size = len(louvain_partition)

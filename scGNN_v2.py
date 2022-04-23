@@ -42,6 +42,10 @@ parser.add_argument('--load_cell_type_labels', type=str, default='',
 parser.add_argument('--load_LTMG', type=str, default=None, 
                     help='Not needed if using benchmark')
 
+# Seurat related
+parser.add_argument('--load_seurat_object', type=str, default=None, 
+                    help='(str, default None) If not None, will load the csv generated from the SeuratObject specified in this file path')
+
 # Preprocess related
 parser.add_argument('--preprocess_cell_cutoff', type=float, default=0.9, 
                     help='Not needed if using benchmark')
@@ -61,16 +65,43 @@ parser.add_argument('--feature_AE_regu_strength', type=float, default=0.9,
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
 parser.add_argument('--feature_AE_dropout_prob', type=float, default=0, 
                     help='(float, default 0)')
+parser.add_argument('--feature_AE_concat_prev_embed', type=str, default=None, 
+                    help="(str, default None) Choose from {'feature', 'graph'}")               
 
 # Graph AE related
 parser.add_argument('--graph_AE_epoch', type=int, default=200,
                     help='(int, default 200)')
 parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False, 
-                    help='(boolean, default False) Not fully implemented')
+                    help='(boolean, default False) If true, will use GAT for GAE layers; otherwise will use GCN layers')
+parser.add_argument('--graph_AE_GAT_dropout', type=float, default=0)
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
 parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
                     help='(int, default 16) Graphh AE embedding size')
+parser.add_argument('--graph_AE_concat_prev_embed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed Feature AE embed at t for graph construction; else will construct graph using Feature AE embed only')
+parser.add_argument('--graph_AE_normalize_embed', type=str, default=None, 
+                    help="(str, default None) Choose from {None, 'sum1', 'binary'}")
+parser.add_argument('--graph_AE_graph_construction', type=str, default='v0', 
+                    help="(str, default v0) Choose from {'v0', 'v1', 'v2'}")
+parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=10,
+                    help='(int, default 10)')
+parser.add_argument('--graph_AE_retain_weights', action='store_true', default=False, 
+                    help='(boolean, default False)')
+parser.add_argument('--gat_multi_heads', type=int, default=2, 
+                    help='(int, default 2)')                   
+parser.add_argument('--gat_hid_embed', type=int, default=64, 
+                    help='(int, default 64)')   
+
+# Clustering related
+parser.add_argument('--clustering_louvain_only', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will use Louvain clustering only; otherwise, first use Louvain to determine clusters count (k), then perform KMeans.')
+parser.add_argument('--clustering_use_flexible_k', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will determin k using Louvain every epoch; otherwise, will rely on the k in the first epoch')
+parser.add_argument('--clustering_embed', type=str, default='graph', 
+                    help="(str, default 'graph') Choose from {'feature', 'graph', 'both'}")
+parser.add_argument('--clustering_method', type=str, default='KMeans', 
+                    help="(str, default 'KMeans') Choose from {'KMeans', 'AffinityPropagation'}") 
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
@@ -128,6 +159,11 @@ parser.add_argument('--output_dir', type=str, default='outputs/',
                     help="(str, default 'outputs/') Folder for storing all the outputs")
 parser.add_argument('--output_run_ID', type=int, default=None, 
                     help='(int, default None) Run ID to be printed along with metric outputs')
+parser.add_argument('--output_preprocessed', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will output preprocessed data and dropout info')
+parser.add_argument('--output_intermediate', action='store_true', default=False, 
+                    help='(boolean, default False) If true, will output intermediate results')
+
 
 args = parser.parse_args()
 
@@ -141,6 +177,7 @@ from time import time
 import load
 import preprocess
 import benchmark_util
+import util
 # from ccs import CCC_graph_handler
 import result
 from auto_encoders.feature_AE import feature_AE_handler
@@ -171,7 +208,7 @@ X_bulk = preprocess.bulk_handler(X_bulk_raw, gene_filter=X_sc['gene'])['expr'] i
 info_log.print('\n> Setting up data for testing ...')
 x_dropout, dropout_info = benchmark_util.dropout(X_sc, args)
 ct_labels_truth = load.cell_type_labels(args, cell_filter=X_sc['cell']) if args.given_cell_type_labels else None
-result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args)
+result.write_out_preprocessed_data_for_benchmarking(X_sc, x_dropout, dropout_info, ct_labels_truth, args) if args.output_preprocessed else None
 
 info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
@@ -186,33 +223,43 @@ CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 # Main program starts here
 info_log.print('\n> Pre EM runs ...')
 param['epoch_num'] = 0
+param['total_epoch'] = args.total_epoch
 x_dropout = x_dropout['expr']
+param['n_feature_orig'] = x_dropout.shape[1]
+param['x_dropout'] = x_dropout
 X_process = x_dropout.copy()
-X_embed, _, model_state = feature_AE_handler(X_process, TRS, args, param)
+
+X_embed, X_feature_recon, model_state = feature_AE_handler(X_process, TRS, args, param)
+
 graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
 info_log.print('\n> Entering main loop ...')
-metrics = result.Performance_Metrics(X_sc, X_process, edgeList, ct_labels_truth, dropout_info, graph_embed, args, param)
+metrics = result.Performance_Metrics(X_sc, X_process, X_feature_recon, edgeList, ct_labels_truth, dropout_info, graph_embed, X_embed, args, param)
 for i in range(args.total_epoch):
     info_log.print(f"\n==========> scGNN Epoch {i+1}/{args.total_epoch} <==========")
     param['epoch_num'] = i+1
+    param['feature_embed'] = X_embed
+    param['graph_embed'] = graph_embed
 
-    cluster_labels, cluster_lists_of_idx = clustering_handler(graph_embed, edgeList)
-    X_imputed_sc = cluster_AE_handler(X_process, TRS, cluster_lists_of_idx, args, param, model_state)
+    cluster_labels, cluster_lists_of_idx = clustering_handler(edgeList, args, param, metrics)
+
+    param['impute_regu'] = util.graph_celltype_regu_handler(adj, cluster_labels)
+    X_imputed_sc = cluster_AE_handler(X_feature_recon, TRS, cluster_lists_of_idx, args, param, model_state)
 
     if args.use_bulk:
         X_imputed_bulk = deconvolution_handler(X_process, X_bulk, x_dropout, TRS, cluster_lists_of_idx, args, param)
         X_imputed = imputation_handler(X_imputed_sc, X_imputed_bulk, x_dropout, args, param)
     else:
         X_imputed = X_imputed_sc
+    
+    X_embed, X_feature_recon, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
 
-    X_embed, _, model_state = feature_AE_handler(X_imputed, TRS, args, param, model_state)
     graph_embed, CCC_graph_hat, edgeList, adj = graph_AE_handler(X_embed, CCC_graph, args, param)
 
     X_process = X_imputed
 
     # Evaluate performance metrics
-    metrics.update(cluster_labels, X_imputed, edgeList, graph_embed, param)
+    metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, X_embed, param)
     info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():
@@ -221,7 +268,7 @@ for i in range(args.total_epoch):
 
 info_log.print('\n> Outputing results ...')
 metrics.output(args)
-result.write_out(X_sc, X_imputed, cluster_labels, graph_embed, args)
+result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, edgeList, args, param)
 
 # Plot & Print results
 # info_log.print('\n> Plotting results ...')

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import scipy.sparse as sp
 import pandas as pd
+from sklearn.preprocessing import minmax_scale
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -12,6 +13,21 @@ from sklearn.manifold import TSNE
 import torch
 from torch.utils.data import Dataset
 
+def graph_celltype_regu_handler(adj, cluster_labels):
+    adjdense = sp.csr_matrix.todense(adj)
+    adjdense = normalize_cell_cell_matrix(adjdense)
+    
+    celltypesample = generateCelltypeRegu(cluster_labels)
+    celltypesample = normalize_cell_cell_matrix(celltypesample)
+    
+    return (adjdense, celltypesample)
+
+def normalize_cell_cell_matrix(x):
+    avg_factor = 1 / np.ma.sum(x, axis=1).reshape((x.shape[0],-1))
+    avg_factor = np.ma.filled(avg_factor, fill_value=0)
+    avg_mtx = np.tile(avg_factor, [1, len(x)])
+    return avg_mtx * x
+    
 def generateCelltypeRegu(listResult):
     celltypesample = np.zeros((len(listResult), len(listResult)))
     tdict = {}
@@ -32,7 +48,6 @@ def generateCelltypeRegu(listResult):
                 celltypesample[item1, item2] = 1.0
 
     return celltypesample
-
 
 class ExpressionDataset(Dataset):
     def __init__(
@@ -86,13 +101,14 @@ def plot(y, xlabel='epochs', ylabel='', hline=None, output_dir='', suffix=''):
     plt.savefig(os.path.join(output_dir, f"{ylabel.replace(' ', '_')}{suffix}.png"), dpi=200)
     plt.clf()
 
-def drawUMAP(z, listResult, output_dir):
+def drawUMAP(z, listResult, output_dir, filename_suffix=None):
     """
     UMAP
     """
-    reducer = umap.UMAP()
+    reducer = umap.UMAP(random_state=1)
     embedding = reducer.fit_transform(z)
     size = len(set(listResult)) + 1
+    filename_suffix = f'_{filename_suffix}' if filename_suffix else ''
 
     plt.scatter(embedding[:, 0], embedding[:, 1],
                 c=listResult, cmap='Spectral', s=5)
@@ -100,7 +116,7 @@ def drawUMAP(z, listResult, output_dir):
     plt.colorbar(boundaries=np.arange(int(size)) - 0.5).set_ticks(np.arange(int(size)))
     plt.title('UMAP projection', fontsize=24)
 
-    plt.savefig(os.path.join(output_dir, f"UMAP.png"), dpi=300)
+    plt.savefig(os.path.join(output_dir, f"UMAP{filename_suffix}.png"), dpi=300)
     plt.clf()
 
 def drawTSNE(z, listResult, output_dir):
@@ -130,3 +146,15 @@ def drawTSNE(z, listResult, output_dir):
 
 def imputation_err_heatmap(X_sc, X_imputed, cluster_labels=None, args=None):
     pass
+
+def normalizer(X, base, axis=0):
+    upper = np.quantile(base, q=0.9)
+    lower = np.quantile(base, q=0.1)
+    if upper != lower:
+        normalized = minmax_scale(X, feature_range=(lower, upper), axis=axis)
+    else:
+        max = np.quantile(base, q=1)
+        min = np.quantile(base, q=0)
+        normalized = minmax_scale(X, feature_range=(min, max), axis=axis)
+
+    return normalized

@@ -4,7 +4,7 @@ from torch.nn import functional as F
 
 import info_log
 
-def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param):
+def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strength, masked_prob, param, regu_type, impute_regu):
     '''
     EMFlag indicates whether in EM processes.
         If in EM, use regulized-type parsed from program entrance,
@@ -12,6 +12,16 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
         taskType: celltype or imputation
     '''
 
+    if len(regu_type) == 2:
+        current_regu_type = regu_type[param['epoch_num'] > 0]
+    else: # len(regu_type) == 3:
+        if param['epoch_num'] == 0: # Pre EM
+            current_regu_type = regu_type[0]
+        elif param['epoch_num'] == param['total_epoch']: # Last epoch
+            current_regu_type = regu_type[2]
+        else:
+            current_regu_type = regu_type[1] # Non-final EM epochs
+    
     for epoch in range(total_epoch):
         model.train()
         train_loss = 0
@@ -21,26 +31,31 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
             # Send data and regulation matrix to device
             data = data.type(torch.FloatTensor).to(param['device'])
             data_masked = F.dropout(data, p=masked_prob)
-            regulationMatrixBatch = TRS[dataindex, :].to(param['device'])
+            if impute_regu is not None:
+                impute_regu['LTMG_regu'] = TRS[dataindex, :].to(param['device'])
+            else:
+                impute_regu = {'LTMG_regu': TRS[dataindex, :].to(param['device'])}
 
             optimizer.zero_grad()
             
             z, recon_batch = model.forward(data_masked) # reconstructed batch and encoding layer as outputs
             
             # Calculate loss
-            if param['epoch_num'] > 0:
-                loss = loss_function_graph(
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = regulationMatrixBatch, 
-                    regu_strength = regu_strength)
-            else:
-                loss = loss_function_graph(
-                    recon_batch, 
-                    data.view(-1, recon_batch.shape[1]), 
-                    regulationMatrix = regulationMatrixBatch, 
-                    regu_strength = regu_strength,
-                    regularizer_type = 'LTMG')
+            loss = loss_function_graph( 
+                recon_batch,
+                data.view(-1, recon_batch.shape[1]),
+                regulationMatrix = impute_regu,
+                regu_strength = regu_strength,
+                regularizer_type = current_regu_type,
+                param = param)
+
+            if current_regu_type == 'Celltype':
+                l1 = 0.0
+                l2 = 0.0
+                for p in model.parameters():
+                    l1 = l1 + p.abs().sum()
+                    l2 = l2 + p.pow(2).sum()
+                loss = loss + 1 * l1 + 0 * l2
 
             # Backprop and Update
             loss.backward()
@@ -61,19 +76,34 @@ def train_handler(model, train_loader, optimizer, TRS, total_epoch, regu_strengt
 
     return  data_all, z_all, recon_batch_all
 
-def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='noregu', regu_strength=0.9, reduction='sum'):
+def loss_function_graph(recon_x, x, regulationMatrix=None, regularizer_type='noregu', regu_strength=0.9, reduction='sum', param=None):
     '''
     Regularized by the graph information
     Reconstruction + KL divergence losses summed over all elements and batch
     '''
-    if regularizer_type == 'LTMG':
+    if regularizer_type in ['LTMG', 'Celltype']:
         x.requires_grad = True
     
-    BCE = (1-regu_strength) * F.mse_loss(recon_x, x, reduction=reduction)
+    BCE = F.mse_loss(recon_x, x, reduction=reduction) # [cell batch * gene]
     
     if regularizer_type == 'noregu':
         loss = BCE
+
     elif regularizer_type == 'LTMG':
-        loss = BCE + regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix ).sum()
+        loss = (1-regu_strength) * BCE + \
+            regu_strength * ( F.mse_loss(recon_x, x, reduction='none') * regulationMatrix['LTMG_regu'] ).sum()
+
+    elif regularizer_type == 'Celltype':
+        
+        regulationMatrix['x_dropout'].requires_grad = True
+
+        nonzero_regu = (regulationMatrix['x_dropout'] - recon_x[:,:param['n_feature_orig']])[regulationMatrix['x_dropout'].nonzero(as_tuple=True)]
+        graph_regu = regulationMatrix['graph_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions of the connected neighbors
+        celltype_norm = regulationMatrix['celltype_regu'] @ F.mse_loss(recon_x, x, reduction='none') # [cell*cell] @ [cell*gene] replacing individual cell expressions (i.e. each row) with the sum of expressions within the cell type to which a cell belongs
+
+        loss = 0.3 * BCE + \
+            torch.norm(nonzero_regu) + \
+            0.3 * graph_regu.sum() + \
+            0.1 * celltype_norm.sum()
 
     return loss
