@@ -10,3 +10,5 @@ outputs_archive/
 run2.sh
 compare_data.py
 .vscode
+test/
+log/

@@ -42,6 +42,10 @@ parser.add_argument('--load_cell_type_labels', type=str, default='',
 parser.add_argument('--load_LTMG', type=str, default=None, 
                     help='Not needed if using benchmark')
 
+# Seurat related
+parser.add_argument('--load_seurat_object', type=str, default=None, 
+                    help='(str, default None) If not None, will load the csv generated from the SeuratObject specified in this file path')
+
 # Preprocess related
 parser.add_argument('--preprocess_cell_cutoff', type=float, default=0.9, 
                     help='Not needed if using benchmark')
@@ -84,6 +88,10 @@ parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=10,
                     help='(int, default 10)')
 parser.add_argument('--graph_AE_retain_weights', action='store_true', default=False, 
                     help='(boolean, default False)')
+parser.add_argument('--gat_multi_heads', type=int, default=2, 
+                    help='(int, default 2)')                   
+parser.add_argument('--gat_hid_embed', type=int, default=64, 
+                    help='(int, default 64)')   
 
 # Clustering related
 parser.add_argument('--clustering_louvain_only', action='store_true', default=False, 
@@ -155,6 +163,7 @@ parser.add_argument('--output_preprocessed', action='store_true', default=False,
                     help='(boolean, default False) If true, will output preprocessed data and dropout info')
 parser.add_argument('--output_intermediate', action='store_true', default=False, 
                     help='(boolean, default False) If true, will output intermediate results')
+
 
 args = parser.parse_args()
 
