@@ -105,7 +105,7 @@ def drawUMAP(z, listResult, output_dir, filename_suffix=None):
     """
     UMAP
     """
-    reducer = umap.UMAP()
+    reducer = umap.UMAP(random_state=1)
     embedding = reducer.fit_transform(z)
     size = len(set(listResult)) + 1
     filename_suffix = f'_{filename_suffix}' if filename_suffix else ''
