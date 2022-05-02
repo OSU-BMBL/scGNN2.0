@@ -4,6 +4,7 @@ pandas
 matplotlib
 seaborn
 umap-learn
+plotly
 
 sklearn
 scipy

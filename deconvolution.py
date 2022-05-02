@@ -28,14 +28,14 @@ def deconvolution_handler(X_sc, X_bulk, X_dropout, TRS, cluster_lists_of_idx, ar
 
     info_log.print('----------------> Starting Optimization 1 ...')
     weights = optimization_1(
-        X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS<2), # ? Ways to determine high expression gene
+        X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS<2), # ? ways to determine high expression gene
         X_bulk_avg = X_bulk_avg, 
         weights_0 = weights_0, 
         args = args, param = param) # ct * 1
 
     info_log.print('----------------> Starting Optimization 2 ...')
     X_ct_avg = optimization_2(
-        X_sc_ct_avg_pos = average_by_ct(X_sc, cluster_lists_of_idx, mask=X_sc==0),
+        X_sc_ct_avg_pos = average_by_ct(X_sc, cluster_lists_of_idx, mask=X_dropout==0),
         X_bulk_avg = X_bulk_avg, 
         weights = weights, 
         args = args, param = param) # gene * ct
@@ -131,7 +131,7 @@ def loss_2(X_sc_ct_avg, X_sc_ct_avg_pos, X_bulk_avg, weights, eta=1e-2):
 
     loss_a = X_bulk_avg - X_sc_ct_avg @ weights # [gene * 1] -  [gene * ct] * [ct * 1] -> [gene * 1]
     loss_b = X_sc_ct_avg - X_sc_ct_avg_pos # [gene * ct]
-    loss = torch.norm(loss_a) + eta * torch.sum(torch.norm(loss_b, dim=0))
+    loss = torch.norm(loss_a) + eta * torch.sum(torch.norm(loss_b, dim=0)) # maybe just torch.norm(loss_b)
     return loss
 
 def optimization_2(X_sc_ct_avg_pos, X_bulk_avg, weights, args, param): 
@@ -167,12 +167,12 @@ def optimization_2(X_sc_ct_avg_pos, X_bulk_avg, weights, args, param):
 def loss_3(X_deconvoluted_ct, X_sc_ct, X_dropout_ct, X_ct_avg_i, eta_1=1e-2, eta_2=1e-2, eta_3=1e-2):
 
     loss_a = X_ct_avg_i - X_deconvoluted_ct.mean(dim=-1, keepdim=True) # [gene * 1]
-    loss_b = X_sc_ct - X_deconvoluted_ct # [gene * cell]
-    loss_c = (X_dropout_ct - X_deconvoluted_ct)[X_dropout_ct.nonzero()]
+    loss_b = X_sc_ct - X_deconvoluted_ct # [gene * cell in ct i]
+    # loss_c = (X_dropout_ct - X_deconvoluted_ct)[X_dropout_ct.nonzero()] # ~[gene * cell in ct i]
     loss = torch.norm(loss_a) + \
         eta_1 * torch.sum(torch.norm(loss_b, dim=0))  + \
-        eta_2 * torch.norm(X_deconvoluted_ct, p='nuc') + \
-        eta_3 * torch.norm(loss_c)
+        eta_2 * torch.norm(X_deconvoluted_ct, p='nuc') #+ \
+        # eta_3 * torch.norm(loss_c)
     return loss
 
 def optimization_3(X_ct_avg, X_sc, X_dropout, clusterIndexList, args, param):  # X是采样数据，n=3，y是bulk数据
