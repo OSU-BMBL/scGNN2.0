@@ -1,7 +1,56 @@
+# scGNN2.0
+## About
+This repository contains the source code for scGNN2.0
 
+## Installation
+Installation Tested on Ubuntu 16.04, CentOS 7, MacOS catalina with Python 3.6.8 on one NVIDIA RTX 2080Ti GPU.
+
+### From Source
+Start by grabbing this source codes:
+```bash
+git clone https://github.com/juexinwang/scGNN.git
+cd scGNN
+```
+### Option 1 : (Recommended) Use python virutal environment with conda（https://anaconda.org/）
+```bash
+conda create -n scgnnEnv python=3.6.8 pip
+conda activate scgnnEnv
+pip install -r requirements.txt
+```
+If want to use LTMG (Recommended but Optional, will takes extra time in data preprocessing):
+```bash
+conda install r-devtools
+conda install -c cyz931123 r-scgnnltmg
+```
+## Quick Start
+scGNN accepts scRNA-seq data format: CSV, 10X, SeuratObject, Rdata
+
+### 1. Prepare datasets
+#### CSV format
+
+
+#### 10X format
+
+
+#### SeuratObject
+
+
+#### Rdata format
+
+### 2. Run scGNN
+#### CSV format
+
+
+#### 10X format
+scGNN2.0 supports loading 10X format data as input, you need to specify a directory that contains `mtx` data:
+```bash
+python scGNN_v2.py --load_from_10X your_10X_dir \
+    --output_dir your_output_dir
+```
+
+#### SeuratObject
 [Seurat](https://satijalab.org/seurat) is an famous R toolkit for single cell genomics. Our program provides an interface for Seurat users. 
 
-## Use Seurat object as input
 If now you have a `SeuratObject`, then you can export raw counts into `.csv` file from SeuratObject:
 ```R
 write.table(as.matrix(GetAssayData(object = yourSeuratObject, slot = "counts")), 
@@ -14,14 +63,13 @@ python scGNN_v2.py --load_seurat_object ~/counts.csv \
     --output_dir your_output_dir
 ```
 
-## Load from Rdata
+#### Rdata format
 To run scGNN2.0 project from a `Rdata` file:
 ```bash
 python scGNN_v2.py --load_rdata ~/data.Rdata \
     --output_dir your_output_dir
 ```
 
-## Output in Rdata format
 To generate results in `Rdata` format, you need to specify `output_rdata`:
 ```bash
 python scGNN_v2.py --load_rdata ~/counts.Rdata \
@@ -35,11 +83,4 @@ embeddings=read.csv(file =your_embedding_path ,header=TRUE,row.names = 1)
 pbmc[["pca"]] <- CreateDimReducObject(embeddings = as.matrix(embeddings), key = "embedding_", assay = DefaultAssay(pbmc))
 pbmc <- RunUMAP(pbmc, dims = 1:128)
 DimPlot(pbmc, reduction = "umap")
-```
-
-## Load data from 10X format
-scGNN2.0 supports loading 10X format data as input, you need to specify a directory that contains `mtx` data:
-```bash
-python scGNN_v2.py --load_from_10X your_10X_dir \
-    --output_dir your_output_dir
 ```
