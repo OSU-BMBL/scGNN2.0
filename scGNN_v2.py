@@ -45,6 +45,15 @@ parser.add_argument('--load_LTMG', type=str, default=None,
 # Seurat related
 parser.add_argument('--load_seurat_object', type=str, default=None, 
                     help='(str, default None) If not None, will load the csv generated from the SeuratObject specified in this file path')
+# Rdata related
+parser.add_argument('--load_rdata', type=str, default=None, 
+                    help='rdata path')
+parser.add_argument('--output_rdata', action='store_true', default=False,
+                    help='(boolean, default False) If true, will output rdata results')
+# 10X related
+parser.add_argument('--load_from_10X', type=str, default=None, 
+                    help='(str, default None) If not None, will load the 10X data from this file path')
+
 
 # Preprocess related
 parser.add_argument('--preprocess_cell_cutoff', type=float, default=0.9, 

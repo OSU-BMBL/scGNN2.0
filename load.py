@@ -26,12 +26,80 @@ def sc_handler(args):
             args.load_seurat_object,
             is_cell_by_gene = True
         )
+    elif args.load_rdata:
+        info_log.print('--------> Loading from rdata ...')
+        return load_rdata(
+            args.load_rdata,
+            is_cell_by_gene = True
+        )
+    elif args.load_from_10X:
+        info_log.print('--------> Loading from 10X data ...')
+        return load_from_10X(
+            args.load_from_10X,
+            is_cell_by_gene = True
+        )
     else:
         info_log.print('--------> Loading sc raw expression ...')
         return load_dense(
             os.path.join(dir_path, args.load_sc_dataset),
             is_cell_by_gene = False
         )
+
+def load_rdata(rdata_path,is_cell_by_gene = True,dtype=float,has_cell_name=True,has_gene_name=True):
+    import pyreadr
+    rdata = pyreadr.read_r(rdata_path)
+    df=rdata['df']
+    expr = df.to_numpy().astype(dtype)
+
+    # Get cell and gene names if present, otherwise use an array of 0's as placeholder
+    rows = np.zeros(df.shape[0])
+    columns = np.zeros(df.shape[1])
+    cell = rows if is_cell_by_gene else columns
+    gene = columns if is_cell_by_gene else rows
+    if has_cell_name:
+        cell = df.index.to_numpy() if is_cell_by_gene else df.columns.to_numpy()
+    if has_gene_name:
+        gene = df.columns.to_numpy() if is_cell_by_gene else df.index.to_numpy()
+
+    X_dense = {
+        'expr': expr if is_cell_by_gene else expr.T,
+        'gene': gene,
+        'cell': cell
+    }
+
+    info_log.print(f"----------------> Matrix has {len(X_dense['cell'])} cells and {len(X_dense['gene'])} genes")
+    return X_dense
+
+
+def load_from_10X(dir_path,is_cell_by_gene=True, has_gene_name=True, has_cell_name=True, dtype=float, kwargs=None):
+    info_log.print('----------------> Reading matrix (dense) ...')
+
+    kwargs = {'index_col': 0, 'sep': None} if kwargs is None else kwargs
+    import scanpy as sc
+    adata = sc.read_10x_mtx(
+        dir_path,  # the directory with the `.mtx` file
+        var_names='gene_symbols',                # use gene symbols for the variable names (variables-axis index)
+        cache=True)  
+    expr = adata.X.todense().astype(dtype)
+
+    # Get cell and gene names if present, otherwise use an array of 0's as placeholder
+    rows = np.zeros(X.shape[0])
+    columns = np.zeros(X.shape[1])
+    cell = rows if is_cell_by_gene else columns
+    gene = columns if is_cell_by_gene else rows
+    if has_cell_name:
+        cell = np.array(adata.obs.index) if is_cell_by_gene else np.array(adata.var.index)
+    if has_gene_name:
+        gene = np.array(adata.var.index) if is_cell_by_gene else np.array(adata.obs.index)
+
+    X_dense = {
+        'expr': expr if is_cell_by_gene else expr.T,
+        'gene': gene,
+        'cell': cell
+    }
+
+    info_log.print(f"----------------> Matrix has {len(X_dense['cell'])} cells and {len(X_dense['gene'])} genes")
+    return X_dense
 
 def bulk_handler(args):
     info_log.print('--------> Loading bulk data ...')
