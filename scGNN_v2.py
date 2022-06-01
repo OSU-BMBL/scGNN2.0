@@ -19,9 +19,9 @@ parser.add_argument('--seed', type=int, default=1,
 parser.add_argument('--total_epoch', type=int, default=10, 
                     help='(int, default 10) Total EM epochs')
 parser.add_argument('--ari_threshold', type=float, default=0.95, 
-                    help='(float, default 0.95)')
+                    help='(float, default 0.95) The threshold for ari')
 parser.add_argument('--graph_change_threshold', type=float, default=0.01, 
-                    help='(float, default 0.01)')
+                    help='(float, default 0.01) The threshold for graph change')
 parser.add_argument('--alpha', type=float, default=0.5, 
                     help='(float, default 0.5)')
 
@@ -47,7 +47,7 @@ parser.add_argument('--load_seurat_object', type=str, default=None,
                     help='(str, default None) If not None, will load the csv generated from the SeuratObject specified in this file path')
 # Rdata related
 parser.add_argument('--load_rdata', type=str, default=None, 
-                    help='rdata path')
+                    help='(str, default None) rdata path')
 parser.add_argument('--output_rdata', action='store_true', default=False,
                     help='(boolean, default False) If true, will output rdata results')
 # 10X related
@@ -73,16 +73,17 @@ parser.add_argument('--feature_AE_learning_rate', type=float, default=1e-3,
 parser.add_argument('--feature_AE_regu_strength', type=float, default=0.9, 
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
 parser.add_argument('--feature_AE_dropout_prob', type=float, default=0, 
-                    help='(float, default 0)')
+                    help='(float, default 0) The dropout probability for feature autoencoder')
 parser.add_argument('--feature_AE_concat_prev_embed', type=str, default=None, 
                     help="(str, default None) Choose from {'feature', 'graph'}")               
 
 # Graph AE related
 parser.add_argument('--graph_AE_epoch', type=int, default=200,
-                    help='(int, default 200)')
+                    help='(int, default 200) The epoch or graph autoencoder')
 parser.add_argument('--graph_AE_use_GAT', action='store_true', default=False, 
                     help='(boolean, default False) If true, will use GAT for GAE layers; otherwise will use GCN layers')
-parser.add_argument('--graph_AE_GAT_dropout', type=float, default=0)
+parser.add_argument('--graph_AE_GAT_dropout', type=float, default=0,
+                    help='(int, default 0) The dropout probability for GAT')
 parser.add_argument('--graph_AE_learning_rate', type=float, default=1e-2, 
                     help='(float, default 1e-2) Learning rate')
 parser.add_argument('--graph_AE_embedding_size', type=int, default=16, 
@@ -100,7 +101,7 @@ parser.add_argument('--graph_AE_retain_weights', action='store_true', default=Fa
 parser.add_argument('--gat_multi_heads', type=int, default=2, 
                     help='(int, default 2)')                   
 parser.add_argument('--gat_hid_embed', type=int, default=64, 
-                    help='(int, default 64)')   
+                    help='(int, default 64) The dim for hid_embed')   
 
 # Clustering related
 parser.add_argument('--clustering_louvain_only', action='store_true', default=False, 
@@ -114,7 +115,7 @@ parser.add_argument('--clustering_method', type=str, default='KMeans',
 
 # Cluster AE related
 parser.add_argument('--cluster_AE_epoch', type=int, default=200,
-                    help='(int, default 200)')
+                    help='(int, default 200) The epoch for cluster AE')
 parser.add_argument('--cluster_AE_batch_size', type=int, default=12800, 
                     help='(int, default 12800) Batch size')
 parser.add_argument('--cluster_AE_learning_rate', type=float, default=1e-3, 
@@ -122,46 +123,46 @@ parser.add_argument('--cluster_AE_learning_rate', type=float, default=1e-3,
 parser.add_argument('--cluster_AE_regu_strength', type=float, default=0.9, 
                     help='(float, default 0.9) In loss function, this is the weight on the LTMG regularization matrix')
 parser.add_argument('--cluster_AE_dropout_prob', type=float, default=0, 
-                    help='(float, default 0)')
+                    help='(float, default 0) The dropout probability for cluster AE')
 
 # Deconvolution related
 parser.add_argument('--deconv_opt1_learning_rate', type=float, default=1e-3, 
-                    help='')
+                    help='(float, default 1e-3) learning rate')
 parser.add_argument('--deconv_opt1_epoch', type=int, default=5000, 
-                    help='')
+                    help='(int, default 5000) epoch')
 parser.add_argument('--deconv_opt1_epsilon', type=float, default=1e-4, 
-                    help='')
+                    help='(float, default 1e-4) epsilon')
 parser.add_argument('--deconv_opt1_regu_strength', type=float, default=1e-2, 
-                    help='')
+                    help='(flaot, default 1e-2) strength')
 
 parser.add_argument('--deconv_opt2_learning_rate', type=float, default=1e-1, 
-                    help='')
+                    help='(flaot, default 1e-1) learning rate')
 parser.add_argument('--deconv_opt2_epoch', type=int, default=500, 
-                    help='')
+                    help='(int, default 500) epoch')
 parser.add_argument('--deconv_opt2_epsilon', type=float, default=1e-4, 
-                    help='')
+                    help='(flaot, default 1e-4) epsilon')
 parser.add_argument('--deconv_opt2_regu_strength', type=float, default=1e-2, 
-                    help='')
+                    help='(float, default 1e-2) strength')
 
 parser.add_argument('--deconv_opt3_learning_rate', type=float, default=1e-1, 
-                    help='')
+                    help='(float, default 1e-1)')
 parser.add_argument('--deconv_opt3_epoch', type=int, default=150, 
-                    help='')
+                    help='(int, default 150) epoch')
 parser.add_argument('--deconv_opt3_epsilon', type=float, default=1e-4, 
-                    help='')
+                    help='(flaot, default 1e-4) epsilon')
 parser.add_argument('--deconv_opt3_regu_strength_1', type=float, default=0.8, 
-                    help='')
+                    help='(flaot, default 0.8) strength_1')
 parser.add_argument('--deconv_opt3_regu_strength_2', type=float, default=1e-2, 
-                    help='')
+                    help='(flaot, default 1e-2) strength_2')
 parser.add_argument('--deconv_opt3_regu_strength_3', type=float, default=1, 
-                    help='')
+                    help='(flaot, default 1) strength_3')
 
 parser.add_argument('--deconv_tune_learning_rate', type=float, default=1e-2, 
-                    help='')
+                    help='(flaot, default 1e-2) learning rate')
 parser.add_argument('--deconv_tune_epoch', type=int, default=20, 
-                    help='')
+                    help='(int, default 20) epoch')
 parser.add_argument('--deconv_tune_epsilon', type=float, default=1e-4, 
-                    help='')
+                    help='(float, default) epsilon')
 
 # Output related
 parser.add_argument('--output_dir', type=str, default='outputs/', 
