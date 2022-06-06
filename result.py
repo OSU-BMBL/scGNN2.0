@@ -287,34 +287,59 @@ def write_out(X_sc, X_imputed, cluster_labels, feature_embed, graph_embed, edgeL
     output_dir = args.output_dir
 
     info_log.print('--------> Exporting imputed expression matrix ...')
-    pd.DataFrame(data=X_imputed, index=X_sc['cell'], columns=X_sc['gene']).to_csv(os.path.join(output_dir,'imputed.csv'))
+    df_imputed=pd.DataFrame(data=X_imputed, index=X_sc['cell'], columns=X_sc['gene'])
+    df_imputed.to_csv(os.path.join(output_dir,'imputed.csv'))
+    if args.output_rdata:
+        import pyreadr
+        pyreadr.write_rdata(os.path.join(output_dir,'imputed.Rdata'), 
+                            df_imputed, df_name="df")
 
     info_log.print('--------> Exporting cell label predictions ...')
-    pd.DataFrame(data=cluster_labels, index=X_sc['cell'], columns=["labels_pred"]).to_csv(os.path.join(output_dir,'labels.csv'))
+    df_labels=pd.DataFrame(data=cluster_labels, index=X_sc['cell'], columns=["labels_pred"])
+    df_labels.to_csv(os.path.join(output_dir,'labels.csv'))
+    if args.output_rdata:
+        pyreadr.write_rdata(os.path.join(output_dir,'labels.Rdata'),
+                             df_labels, df_name="df")
 
     info_log.print('--------> Exporting graph embeddings ...')
     embed_size = graph_embed.shape[1]
     emblist = []
     for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
-    pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'graph_embedding.csv'))
-    
+    df_graph_embedding=pd.DataFrame(data=graph_embed, index=X_sc['cell'], columns=emblist)
+    df_graph_embedding.to_csv(os.path.join(output_dir,'graph_embedding.csv'))
+    if args.output_rdata:
+        pyreadr.write_rdata(os.path.join(output_dir,'graph_embedding.Rdata'), 
+                            df_graph_embedding, df_name="df")
+
     info_log.print('--------> Exporting graph edgeList ...')
-    pd.DataFrame(data=edgeList, columns=['Start','End','Weight']).to_csv(os.path.join(output_dir,'graph_edgeList.csv'))
+    df_graph_edgeList=pd.DataFrame(data=edgeList, columns=['Start','End','Weight'])
+    df_graph_edgeList.to_csv(os.path.join(output_dir,'graph_edgeList.csv'))
+    if args.output_rdata:
+        pyreadr.write_rdata(os.path.join(output_dir,'graph_edgeList.Rdata'), 
+                            df_graph_edgeList, df_name="df")
 
     info_log.print('--------> Exporting feature embeddings ...')
     embed_size = feature_embed.shape[1]
     emblist = []
     for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
-    pd.DataFrame(data=feature_embed, index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,'feature_embedding.csv'))
+    df_feature_embedding=pd.DataFrame(data=feature_embed, index=X_sc['cell'], columns=emblist)
+    df_feature_embedding.to_csv(os.path.join(output_dir,'feature_embedding.csv'))
+    if args.output_rdata:
+        pyreadr.write_rdata(os.path.join(output_dir,'feature_embedding.Rdata'), 
+                            df_feature_embedding, df_name="df")
 
     info_log.print('--------> Exporting clustering embeddings ...')
     embed_size = param['clustering_embed'].shape[1]
     emblist = []
     for i in range(embed_size):
         emblist.append(f'embedding_{i+1}')
-    pd.DataFrame(data=param['clustering_embed'], index=X_sc['cell'], columns=emblist).to_csv(os.path.join(output_dir,f'clustering_embedding.csv'))
+    df_clustering_embedding=pd.DataFrame(data=param['clustering_embed'], index=X_sc['cell'], columns=emblist)
+    df_clustering_embedding.to_csv(os.path.join(output_dir,f'clustering_embedding.csv'))
+    if args.output_rdata:
+        pyreadr.write_rdata(os.path.join(output_dir,'clustering_embedding.Rdata'), 
+                            df_clustering_embedding, df_name="df")
     
     util.drawUMAP(param['clustering_embed'], cluster_labels, output_dir)
     # util.drawTSNE(param['clustering_embed'], cluster_labels, output_dir)
