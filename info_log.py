@@ -1,5 +1,6 @@
 import logging
-import resource
+# A Unix specific library for Python
+# import resource
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
