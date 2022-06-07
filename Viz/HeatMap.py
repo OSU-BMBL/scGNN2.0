@@ -10,14 +10,11 @@ plt.rcParams['figure.dpi'] = 200
 plt.rcParams.update({'font.size': 5})
 # from util import imputation_err_heatmap
 
-
-# original_filepath = './outputs/13.Zeisel/original_top_expression.csv'
-# imputed_filepath = './outputs/13.Zeisel/imputed.csv'
-# label_filepath = './outputs/13.Zeisel/labels.csv'
-
+# INPUT STARTS
 original_filepath = 'outputs/datasets/2.Chu/original_top_expression.csv'
 imputed_filepath = 'outputs/inputs/no_bulk_2.Chu_0.1_dropout/imputed.csv'
 label_filepath = 'outputs/inputs/no_bulk_2.Chu_0.1_dropout/labels.csv'
+# INPUT ENDS
 
 original = pd.read_csv(original_filepath, index_col=0, sep=None).to_numpy()
 imputed = pd.read_csv(imputed_filepath, index_col=0, sep=None).to_numpy()
@@ -30,7 +27,6 @@ label = label.ravel()
 print(original.shape)
 print(imputed.shape)
 print(label.shape)
-
 
 diff = 1/(np.abs(original - imputed).T+1e-3)
 

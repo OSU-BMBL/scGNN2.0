@@ -8,9 +8,6 @@ umap-learn==0.3.10
 torch
 similarity-index-of-label-graph
 
-
-
-
 networkx==2.4
 python-igraph==0.8.3
 

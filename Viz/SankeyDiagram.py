@@ -6,12 +6,13 @@ import pandas as pd
 
 from collections import Counter
 
-
+# INPUT STARTS
 file_list = [
     'outputs/outputs_v1.2.f.2.6/10241899_2.Chu_0.1_dropout/labels.csv',
     'outputs/datasets/2.Chu/top_cell_labels.csv',
     'outputs/inputs/bulk_2.Chu_0.1_dropout/labels.csv',
 ]
+# INPUT ENDS
 
 node_labels = []
 node_links = []

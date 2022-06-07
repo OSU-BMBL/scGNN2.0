@@ -16,7 +16,7 @@ parser.add_argument('--dropout_prob', type=float, default=0.1,
                     help='(float, default 0.1) Probability that a non-zero value in the sc expression matrix will be set to zero. If this is set to 0, will not perform dropout or compute imputation error ')
 parser.add_argument('--seed', type=int, default=1, 
                     help='(int, default 1) Seed for torch and numpy random generators')
-parser.add_argument('--total_epoch', type=int, default=10, 
+parser.add_argument('--total_epoch', type=int, default=31, 
                     help='(int, default 10) Total EM epochs')
 parser.add_argument('--ari_threshold', type=float, default=0.95, 
                     help='(float, default 0.95) The threshold for ari')
@@ -48,8 +48,7 @@ parser.add_argument('--load_seurat_object', type=str, default=None,
 # Rdata related
 parser.add_argument('--load_rdata', type=str, default=None, 
                     help='(str, default None) rdata path')
-parser.add_argument('--output_rdata', action='store_true', default=False,
-                    help='(boolean, default False) If true, will output rdata results')
+
 # 10X related
 parser.add_argument('--load_from_10X', type=str, default=None, 
                     help='(str, default None) If not None, will load the 10X data from this file path')
@@ -64,7 +63,7 @@ parser.add_argument('--preprocess_top_gene_select', type=int, default=2000,
                     help='Not needed if using benchmark')
 
 # Feature AE related
-parser.add_argument('--feature_AE_epoch', nargs=2, type=int, default=[500, 200], 
+parser.add_argument('--feature_AE_epoch', nargs=2, type=int, default=[500, 300], 
                     help='(two integers separated by a space, default 500 200) First number being non-EM epochs, second number being EM epochs')
 parser.add_argument('--feature_AE_batch_size', type=int, default=12800, 
                     help='(int, default 12800) Batch size')
@@ -92,9 +91,9 @@ parser.add_argument('--graph_AE_concat_prev_embed', action='store_true', default
                     help='(boolean, default False) If true, will concat GAE embed at t-1 with the inputed Feature AE embed at t for graph construction; else will construct graph using Feature AE embed only')
 parser.add_argument('--graph_AE_normalize_embed', type=str, default=None, 
                     help="(str, default None) Choose from {None, 'sum1', 'binary'}")
-parser.add_argument('--graph_AE_graph_construction', type=str, default='v0', 
+parser.add_argument('--graph_AE_graph_construction', type=str, default='v2', 
                     help="(str, default v0) Choose from {'v0', 'v1', 'v2'}")
-parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=10,
+parser.add_argument('--graph_AE_neighborhood_factor', type=float, default=0.05,
                     help='(int, default 10)')
 parser.add_argument('--graph_AE_retain_weights', action='store_true', default=False, 
                     help='(boolean, default False)')
@@ -173,6 +172,8 @@ parser.add_argument('--output_preprocessed', action='store_true', default=False,
                     help='(boolean, default False) If true, will output preprocessed data and dropout info')
 parser.add_argument('--output_intermediate', action='store_true', default=False, 
                     help='(boolean, default False) If true, will output intermediate results')
+parser.add_argument('--output_rdata', action='store_true', default=False,
+                    help='(boolean, default False) If true, will output rdata results')
 
 
 args = parser.parse_args()

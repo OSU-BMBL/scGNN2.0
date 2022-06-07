@@ -34,9 +34,7 @@ python -W ignore scGNN_v2.py \
     --load_use_benchmark \
     --load_dataset_dir ./sampleData \
     --load_dataset_name Goolam\
-    --output_dir ./outputs \
-    --total_epoch 31 --feature_AE_epoch 500 300 \
-    --output_intermediate 
+    --output_dir ./outputs
 ```
 
 ### 10X format
