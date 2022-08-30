@@ -21,6 +21,7 @@ def deconvolution_handler(X_sc, X_bulk, X_dropout, TRS, cluster_lists_of_idx, ar
     X_bulk = X_bulk.T
     X_dropout = X_dropout.T
     TRS = TRS.T
+    X_sc[X_dropout != 0] = X_dropout[X_dropout != 0]
 
     weights_0 = pre_deconvolution_helper(cluster_lists_of_idx, param)
 
@@ -28,14 +29,14 @@ def deconvolution_handler(X_sc, X_bulk, X_dropout, TRS, cluster_lists_of_idx, ar
 
     info_log.print('----------------> Starting Optimization 1 ...')
     weights = optimization_1(
-        X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS<2), # ? ways to determine high expression gene
+        X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS==0), # ? ways to determine high expression gene
         X_bulk_avg = X_bulk_avg, 
         weights_0 = weights_0, 
         args = args, param = param) # ct * 1
 
     info_log.print('----------------> Starting Optimization 2 ...')
     X_ct_avg = optimization_2(
-        X_sc_ct_avg_pos = average_by_ct(X_sc, cluster_lists_of_idx, mask=X_dropout==0),
+        X_sc_ct_avg_pos = average_by_ct(X_sc, cluster_lists_of_idx),
         X_bulk_avg = X_bulk_avg, 
         weights = weights, 
         args = args, param = param) # gene * ct
@@ -97,7 +98,7 @@ def loss_1(weights, X_sc_ct_avg_TRS, X_bulk_avg, weights_0, eta=1e-2):
     loss = torch.norm(loss_a) + eta * torch.norm(loss_b)
     return loss
 
-def optimization_1(X_sc_ct_avg_TRS, X_bulk_avg, weights_0, args, param):  # X是采样数据，n=3，y是bulk数据 
+def optimization_1(X_sc_ct_avg_TRS, X_bulk_avg, weights_0, args, param): 
 
     learning_rate = args.deconv_opt1_learning_rate
     max_epoch = args.deconv_opt1_epoch
@@ -167,7 +168,7 @@ def optimization_2(X_sc_ct_avg_pos, X_bulk_avg, weights, args, param):
 def loss_3(X_deconvoluted_ct, X_sc_ct, X_dropout_ct, X_ct_avg_i, eta_1=1e-2, eta_2=1e-2, eta_3=1e-2):
 
     loss_a = X_ct_avg_i - X_deconvoluted_ct.mean(dim=-1, keepdim=True) # [gene * 1]
-    loss_b = X_sc_ct - X_deconvoluted_ct # [gene * cell in ct i]
+    loss_b = (X_sc_ct - X_deconvoluted_ct)[X_dropout_ct == 0] # ~[gene * cell in ct i]
     # loss_c = (X_dropout_ct - X_deconvoluted_ct)[X_dropout_ct.nonzero()] # ~[gene * cell in ct i]
     loss = torch.norm(loss_a) + \
         eta_1 * torch.sum(torch.norm(loss_b, dim=0))  + \
@@ -175,7 +176,7 @@ def loss_3(X_deconvoluted_ct, X_sc_ct, X_dropout_ct, X_ct_avg_i, eta_1=1e-2, eta
         # eta_3 * torch.norm(loss_c)
     return loss
 
-def optimization_3(X_ct_avg, X_sc, X_dropout, clusterIndexList, args, param):  # X是采样数据，n=3，y是bulk数据
+def optimization_3(X_ct_avg, X_sc, X_dropout, clusterIndexList, args, param): 
 
     learning_rate = args.deconv_opt3_learning_rate
     max_epoch = args.deconv_opt3_epoch
@@ -190,6 +191,7 @@ def optimization_3(X_ct_avg, X_sc, X_dropout, clusterIndexList, args, param):  #
     X_sc = torch.from_numpy(X_sc).type(torch.FloatTensor) # [gene * cell]
     X_dropout = torch.from_numpy(X_dropout).type(torch.FloatTensor) # [gene * cell]
     X_deconvoluted = torch.randn_like(X_sc).type(torch.FloatTensor)  # random initialization [gene * cell]
+    X_deconvoluted[X_dropout != 0] = X_dropout[X_dropout != 0]
 
     for i, ct_idx in enumerate(clusterIndexList):
 
@@ -227,7 +229,7 @@ def fine_tune_loss(tunning_weights, X_bulk_avg, X_deconvoluted_ct_avg, weights, 
     loss = torch.norm(loss_a) + torch.norm(loss_b)
     return loss
 
-def fine_tune(X_bulk_avg, X_deconvoluted_ct_avg, weights, args, param):  # X是采样数据，n=3，y是bulk数据  
+def fine_tune(X_bulk_avg, X_deconvoluted_ct_avg, weights, args, param): 
 
     learning_rate = args.deconv_tune_learning_rate
     max_epoch = args.deconv_tune_epoch
