@@ -270,7 +270,7 @@ for i in range(args.total_epoch):
     X_process = X_imputed
 
     # Evaluate performance metrics
-    metrics.update(cluster_labels, X_imputed, X_feature_recon, edgeList, graph_embed, X_embed, param)
+    metrics.update(cluster_labels, X_imputed_sc, X_feature_recon, edgeList, graph_embed, X_embed, param)
     info_log.print(f"==========> Epoch {param['epoch_num']}: {metrics.latest_results()} <==========")
 
     if metrics.stopping_checks():
@@ -279,7 +279,7 @@ for i in range(args.total_epoch):
 
 info_log.print('\n> Outputing results ...')
 metrics.output(args)
-result.write_out(X_sc, X_imputed, cluster_labels, X_embed, graph_embed, edgeList, args, param)
+result.write_out(X_sc, X_imputed_sc, cluster_labels, X_embed, graph_embed, edgeList, args, param)
 
 # Plot & Print results
 # info_log.print('\n> Plotting results ...')
