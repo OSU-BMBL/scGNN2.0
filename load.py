@@ -83,8 +83,8 @@ def load_from_10X(dir_path,is_cell_by_gene=True, has_gene_name=True, has_cell_na
     expr = adata.X.todense().astype(dtype)
 
     # Get cell and gene names if present, otherwise use an array of 0's as placeholder
-    rows = np.zeros(X.shape[0])
-    columns = np.zeros(X.shape[1])
+    rows = np.zeros(expr.shape[0])
+    columns = np.zeros(expr.shape[1])
     cell = rows if is_cell_by_gene else columns
     gene = columns if is_cell_by_gene else rows
     if has_cell_name:
@@ -117,7 +117,7 @@ def bulk_handler(args):
             is_cell_by_gene = False
         )
 
-def LTMG_handler(args):
+def LTMG_handler(X_sc,args):
     '''
     Read LTMG matrix as the regularizor. nonsparseMode
     '''
@@ -135,6 +135,8 @@ def LTMG_handler(args):
             os.path.join(dir_path, f'LTMG_{args.dropout_prob}.csv'),
             is_cell_by_gene = False
         )['expr']
+    elif args.load_LTMG is None:
+        return np.zero_like(X_sc['expr'])
     else:
         return load_dense(
             os.path.join(dir_path, args.load_LTMG),

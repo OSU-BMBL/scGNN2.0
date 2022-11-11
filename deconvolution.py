@@ -28,8 +28,9 @@ def deconvolution_handler(X_sc, X_bulk, X_dropout, TRS, cluster_lists_of_idx, ar
     X_bulk_avg = average_with_mask(X_bulk) # Changed to normal average
 
     info_log.print('----------------> Starting Optimization 1 ...')
+    X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx) if args.load_LTMG is None else average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS<2)
     weights = optimization_1(
-        X_sc_ct_avg_TRS = average_by_ct(X_sc, cluster_lists_of_idx, mask=TRS==0), # ? ways to determine high expression gene
+        X_sc_ct_avg_TRS = X_sc_ct_avg_TRS,
         X_bulk_avg = X_bulk_avg, 
         weights_0 = weights_0, 
         args = args, param = param) # ct * 1

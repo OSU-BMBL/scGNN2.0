@@ -225,7 +225,7 @@ info_log.print('\n> Preparing other matrices ...')
 if args.run_LTMG:
     from LTMG_R import runLTMG
     runLTMG(x_dropout, args)
-TRS = load.LTMG_handler(args) # cell * gene
+TRS = load.LTMG_handler(X_sc, args) # cell * gene
 CCC_graph = None # CCC_graph_handler(TRS, X_process) if args.use_CCC else None
 
 # info_log.print('\n> Program Finished! \n')
