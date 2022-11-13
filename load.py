@@ -136,7 +136,7 @@ def LTMG_handler(X_sc,args):
             is_cell_by_gene = False
         )['expr']
     elif args.load_LTMG is None:
-        return np.zero_like(X_sc['expr'])
+        return np.zeros_like(X_sc['expr'])
     else:
         return load_dense(
             os.path.join(dir_path, args.load_LTMG),
