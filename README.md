@@ -63,7 +63,7 @@ write.table(as.matrix(GetAssayData(object = yourSeuratObject, slot = "counts")),
         '~/counts.csv', 
         sep = ',', row.names = T, col.names = T, quote = F)
 ```
-Please note the default input matirx of scGNN2.0 is a cell (rows) by gene (columns) matrix. In Seurat, `GetAssayData` returns a matrix where rows are features (genes) and columns are cells. If you want to transpose this matrix to get a cell-by-gene matrix, you can use the t() function in R, which transposes matrices. Here's how you can modify your command:
+Please note the default input matirx of scGNN2.0 is a cell (rows) by gene (columns) matrix. In Seurat, `GetAssayData` returns a matrix where rows are features (genes) and columns are cells. If you want to transpose this matrix to get a cell-by-gene matrix, you can use the `t()` function in R, which transposes matrices. Here's how you can modify your command:
 ```R
 write.table(t(as.matrix(GetAssayData(object = yourSeuratObject, slot = "counts"))),
             '~/counts.csv',
